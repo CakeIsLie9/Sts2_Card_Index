@@ -1,0 +1,91 @@
+2026-08-26 10:07:11.405: [INFO] CurrentProfilePath: C:\Users\caret\AppData\Local\Temp\flutter_tools.8ee45b1\flutter_tools_chrome_device.32e7122b\Default
+2026-08-26 10:07:11.405: [INFO] Profiles total count: 1
+2026-08-26 10:07:11.405: [INFO] Profile: name=프로필 1 path=C:\Users\caret\AppData\Local\Temp\flutter_tools.8ee45b1\flutter_tools_chrome_device.32e7122b\Default lastActive=null
+2026-08-26 10:07:11.405: [INFO] LastUsedProfileDir: C:\Users\caret\AppData\Local\Temp\flutter_tools.8ee45b1\flutter_tools_chrome_device.32e7122b\Default
+2026-08-26 10:07:11.405: [INFO] VisibilityChanged: 0
+2026-08-26 10:07:11.492: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.493: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.493: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.494: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.495: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.496: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.497: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.499: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.499: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.500: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:11.516: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:11.516: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:11.517: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:11.517: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:11.517: [INFO] OnDoneLoading sync enabled: 0
+2026-08-26 10:07:11.517: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-26 10:07:11.517: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-26 10:07:11.517: [INFO] BookmarksSnapshot Startup total=4 bar=4 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-26 10:07:11.522: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:13.858: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-08-26 10:07:13.862: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-08-26 10:07:13.866: [INFO] Primary account changed.
+2026-08-26 10:07:13.866: [INFO] OnPrimaryAccountChanged PrimaryAccountChangeEvent::Type::kSet
+2026-08-26 10:07:13.873: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-08-26 10:07:13.919: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-08-26 10:07:24.070: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.070: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.071: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.071: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.071: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.071: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.071: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.072: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.072: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.072: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.072: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.072: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.073: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.073: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.073: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.073: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.073: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.073: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.073: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.074: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.074: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.074: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.074: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.074: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.074: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.074: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.075: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.075: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.075: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.075: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.075: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.075: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.076: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.077: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.077: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.077: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.077: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.077: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.077: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.077: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.078: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.078: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.078: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.078: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.078: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.078: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.079: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.079: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.079: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.079: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.079: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-26 10:07:24.093: [INFO] BookmarkBarPrefChanged showBar=0 showBarNTP=1
+2026-08-26 10:07:35.144: [INFO] Sync initialization duration: 21073ms
+2026-08-26 10:07:52.428: [INFO] BookmarksSnapshot Shutdown total=53 bar=15 other=20 mobile=0 showBar=0 showBarNTP=1

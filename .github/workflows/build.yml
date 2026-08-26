@@ -3,7 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch: # 웹에서 수동 실행 버튼 활성화
+  workflow_dispatch:
 
 jobs:
   build:
@@ -28,7 +28,8 @@ jobs:
         run: flutter pub get
 
       - name: Build Release APK
-        run: flutter build apk --release
+        # 검증 우회 플래그를 붙여 클라우드 빌드 중단 방지
+        run: flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

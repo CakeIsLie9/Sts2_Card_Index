@@ -10,7 +10,7 @@ import java.util.Base64
 android {
     namespace = "com.example.card_index"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
