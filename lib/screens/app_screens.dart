@@ -55,12 +55,12 @@ class AppFontManager {
 
 class WriteModeManager {
   static final ValueNotifier<bool> isWriteModeNotifier =
-      ValueNotifier<bool>(true); // 기본값 ON
+      ValueNotifier<bool>(false); // 기본값 OFF
 
   static Future<void> loadWriteMode() async {
     final prefs = await SharedPreferences.getInstance();
-    // 저장된 설정이 없으면 기본값 true (ON)
-    isWriteModeNotifier.value = prefs.getBool('app_write_mode') ?? true;
+    // 저장된 설정이 없으면 기본값 false (OFF)
+    isWriteModeNotifier.value = prefs.getBool('app_write_mode') ?? false;
   }
 
   static Future<void> setWriteMode(bool value) async {
@@ -1784,6 +1784,7 @@ class _CardCompendiumScreenState extends State<CardCompendiumScreen> {
                       },
                     );
                   }).toList(),
+                  
                 ),
                 const SizedBox(height: 12),
                 const Text('비용 필터',
@@ -3885,6 +3886,7 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
                         CardRarity.uncommon,
                         CardRarity.rare,
                         CardRarity.event,
+                        CardRarity.token,
                         CardRarity.ancient,
                       ]
                           .map((r) => DropdownMenuItem(
