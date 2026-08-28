@@ -171,8 +171,8 @@ class AppToast {
                 child: Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'GyeonggiBatang',
+                  style: TextStyle(
+                    fontFamily: AppFontManager.fontFamily,
                     color: Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -305,6 +305,10 @@ class CardPreviewHelper {
         ? card.upgradedEffect!
         : card.effect;
     final displayCostLabel = card.getCostLabel(isUpgraded);
+    final isUnplayable = ((isUpgraded && card.upgradedCost != null)
+        ? card.upgradedCost!
+        : card.cost) ==
+      CardCost.none;
     const popupWidth = 248.0;
     const popupHeight = 190.0;
     final popupOffset = _popupOffset(
@@ -368,28 +372,30 @@ class CardPreviewHelper {
                                 color: isDark
                                     ? Colors.white
                                     : const Color(0xFF1E293B),
-                                fontFamily: 'GyeonggiBatang',
+                                fontFamily: AppFontManager.fontFamily,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Text(
-                            displayCostLabel,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF1E293B),
+                          if (!isUnplayable) ...[
+                            Text(
+                              displayCostLabel,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Image.asset(
-                            effectiveColor.iconPath,
-                            width: 13,
-                            height: 13,
-                            errorBuilder: (c, o, s) => const SizedBox.shrink(),
-                          ),
+                            const SizedBox(width: 4),
+                            Image.asset(
+                              effectiveColor.iconPath,
+                              width: 13,
+                              height: 13,
+                              errorBuilder: (c, o, s) => const SizedBox.shrink(),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -443,17 +449,23 @@ class CardPreviewHelper {
     required BuildContext context,
     required KeywordData keyword,
     required Rect targetRect,
+    CardData? relatedCard,
   }) {
     hide();
 
     final overlayState = Overlay.of(context);
     final screenSize = MediaQuery.of(context).size;
     const double popupWidth = 220.0;
-    const popupHeight = 130.0;
+    const double cardPopupWidth = 248.0;
+    const double popupGap = 8.0;
+    final combinedWidth = relatedCard == null
+        ? popupWidth
+        : popupWidth + popupGap + cardPopupWidth;
+    const popupHeight = 220.0;
     final popupOffset = _popupOffset(
       targetRect: targetRect,
       screenSize: screenSize,
-      popupWidth: popupWidth,
+      popupWidth: combinedWidth,
       popupHeight: popupHeight,
     );
 
@@ -470,10 +482,30 @@ class CardPreviewHelper {
           Positioned(
             left: popupOffset.dx,
             top: popupOffset.dy,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: popupWidth,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildKeywordPopupPanel(keyword, popupWidth),
+                if (relatedCard != null) ...[
+                  const SizedBox(width: popupGap),
+                  _buildRelatedCardPopupPanel(relatedCard, cardPopupWidth),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    overlayState.insert(_currentEntry!);
+  }
+
+  static Widget _buildKeywordPopupPanel(
+      KeywordData keyword, double popupWidth) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: popupWidth,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1B2529),
@@ -496,33 +528,118 @@ class CardPreviewHelper {
                   children: [
                     Text(
                       keyword.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFE7C66A),
-                        fontFamily: 'GyeonggiBatang',
+                        fontFamily: AppFontManager.fontFamily,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       keyword.description,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         color: Color(0xFFE5E7E9),
                         height: 1.35,
-                        fontFamily: 'GyeonggiBatang',
+                        fontFamily: AppFontManager.fontFamily,
                       ),
                     ),
                   ],
                 ),
               ),
+            );
+  }
+
+  static Widget _buildRelatedCardPopupPanel(CardData card, double popupWidth) {
+    final color = card.isSharedStarter ? CardColor.ironclad : card.color;
+    final isUnplayable = card.cost == CardCost.none;
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: popupWidth,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B2529),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Color(color.colorHex), width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black45,
+              blurRadius: 16,
+              offset: Offset(0, 8),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: const BoxDecoration(
+                color: Color(0xFF202020),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      card.name,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: AppFontManager.fontFamily,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (!isUnplayable) ...[
+                    Text(card.getCostLabel(false),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 4),
+                    Image.asset(color.iconPath, width: 13, height: 13),
+                  ],
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (card.imagePath.isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: SizedBox(
+                        width: 54,
+                        height: 72,
+                        child: AppCardImage(
+                          imagePath: card.imagePath,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: InteractiveCardText(
+                      text: card.effect,
+                      cardColor: color,
+                      baseStyle: const TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: Color(0xFFE5E7E9),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
-
-    overlayState.insert(_currentEntry!);
   }
 }
 
@@ -557,11 +674,11 @@ class InteractiveCardText extends StatelessWidget {
       fontSize: 14.0,
       height: 1.5,
       color: isDark ? Colors.white : const Color(0xFF1E293B),
-      fontFamily: 'GyeonggiBatang',
+      fontFamily: AppFontManager.fontFamily,
     );
 
     final effectiveStyle = baseStyle != null
-        ? defaultStyle.merge(baseStyle).copyWith(fontFamily: 'GyeonggiBatang')
+        ? defaultStyle.merge(baseStyle)
         : defaultStyle;
 
     if (onlyLinks) {
@@ -845,10 +962,18 @@ class InteractiveCardText extends StatelessWidget {
       final rect = box == null
           ? const Rect.fromLTWH(0, 0, 0, 0)
           : box.localToGlobal(Offset.zero) & box.size;
+      CardData? relatedCard;
+      if (kwName == '단조') {
+        final matchingCards = CardStorage.cards
+            .where((card) => card.name.trim() == '군주의 칼날')
+            .toList();
+        if (matchingCards.length == 1) relatedCard = matchingCards.single;
+      }
       CardPreviewHelper.showKeyword(
         context: context,
         keyword: targetKw,
         targetRect: rect,
+        relatedCard: relatedCard,
       );
     }
 
@@ -887,7 +1012,7 @@ class SearchEffectText extends StatelessWidget {
     final baseStyle = TextStyle(
       fontSize: 13,
       color: isDark ? const Color(0xFFB0BEC5) : const Color(0xFF475569),
-      fontFamily: 'GyeonggiBatang',
+      fontFamily: AppFontManager.fontFamily,
     );
     final regex = RegExp(
         r'(\^\[\[(.*?)\]\]\^|\[\[\^(.*?)\^\]\]|\^\[(.*?)\]\^|\[\^(.*?)\^\]|\[\[(.*?)\]\]|\[(.*?)\]|\^(.*?)\^|(@|\*))');
@@ -1000,7 +1125,7 @@ class SearchEffectText extends StatelessWidget {
     return RichText(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      text: TextSpan(children: spans),
+      text: TextSpan(style: baseStyle, children: spans),
     );
   }
 }
@@ -1026,13 +1151,11 @@ class UnifiedCardListTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final displayImg = card.getImagePathForColor(effectiveColor, isUp);
     final displayCostLabel = card.getCostLabel(isUp);
-    final displayStar = (isUp && card.upgradedStarCost != null)
-        ? card.upgradedStarCost!
-        : card.starCost;
+    final displayStar = card.getStarCostLabel(isUp);
 
     final isSpecialCategory = effectiveColor == CardColor.status ||
-        effectiveColor == CardColor.quest ||
-        effectiveColor == CardColor.curse;
+      effectiveColor == CardColor.quest ||
+      effectiveColor == CardColor.curse;
 
     String tagLabel = card.rarity.label;
     Color tagBgColor = Color(card.rarity.colorHex);
@@ -1184,7 +1307,7 @@ class UnifiedCardListTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (isSpecialCategory)
+              if (isSpecialCategory && isUnplayable)
                 Text(
                   '$tagLabel | 사용불가',
                   style: const TextStyle(
@@ -1205,16 +1328,7 @@ class UnifiedCardListTile extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (isUnplayable)
-                      const Text(
-                        '사용불가',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    else ...[
+                    if (!isUnplayable) ...[
                       Image.asset(
                         effectiveColor.iconPath,
                         width: 14,
@@ -1243,7 +1357,7 @@ class UnifiedCardListTile extends StatelessWidget {
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          '$displayStar',
+                          displayStar,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,

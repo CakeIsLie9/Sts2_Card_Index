@@ -1,7 +1,32 @@
-2026/08/26-19:07:11.344 5104 Creating DB C:\Users\caret\AppData\Local\Temp\flutter_tools.8ee45b1\flutter_tools_chrome_device.32e7122b\Default\Local Storage\leveldb since it was missing.
-2026/08/26-19:07:11.374 5104 Reusing MANIFEST C:\Users\caret\AppData\Local\Temp\flutter_tools.8ee45b1\flutter_tools_chrome_device.32e7122b\Default\Local Storage\leveldb/MANIFEST-000001
-2026/08/26-19:07:48.477 346c Level-0 table #5: started
-2026/08/26-19:07:48.485 346c Level-0 table #5: 76278 bytes OK
-2026/08/26-19:07:48.488 346c Delete type=0 #3
-2026/08/26-19:07:52.437 346c Level-0 table #7: started
-2026/08/26-19:07:52.452 346c Level-0 table #7: 16398 bytes OK
+2026/08/28-19:58:17.905 8774 Reusing MANIFEST C:\Users\caret\AppData\Local\Temp\flutter_tools.584d14d4\flutter_tools_chrome_device.dcd16ddf\Default\Local Storage\leveldb/MANIFEST-000001
+2026/08/28-19:58:17.931 8774 Recovering log #49
+2026/08/28-19:58:17.938 8774 Reusing old log C:\Users\caret\AppData\Local\Temp\flutter_tools.584d14d4\flutter_tools_chrome_device.dcd16ddf\Default\Local Storage\leveldb/000049.log 
+2026/08/28-19:58:17.942 8774 Delete type=0 #4
+2026/08/28-19:58:17.943 8774 Delete type=0 #6
+2026/08/28-19:58:17.943 8774 Delete type=2 #7
+2026/08/28-19:58:17.943 8774 Delete type=0 #8
+2026/08/28-19:58:17.943 8774 Delete type=2 #9
+2026/08/28-19:58:17.943 8774 Delete type=0 #11
+2026/08/28-19:58:17.944 8774 Delete type=2 #12
+2026/08/28-19:58:17.944 8774 Delete type=0 #14
+2026/08/28-19:58:17.944 8774 Delete type=2 #16
+2026/08/28-19:58:17.944 8774 Delete type=0 #18
+2026/08/28-19:58:17.944 8774 Delete type=2 #19
+2026/08/28-19:58:17.944 8774 Delete type=2 #21
+2026/08/28-19:58:17.945 8774 Delete type=0 #23
+2026/08/28-19:58:17.945 8774 Delete type=2 #24
+2026/08/28-19:58:17.945 8774 Delete type=0 #26
+2026/08/28-19:58:17.945 8774 Delete type=2 #28
+2026/08/28-19:58:17.945 8774 Delete type=0 #30
+2026/08/28-19:58:17.945 8774 Delete type=2 #31
+2026/08/28-19:58:17.945 8774 Delete type=2 #33
+2026/08/28-19:58:17.945 8774 Delete type=0 #35
+2026/08/28-19:58:17.945 8774 Delete type=2 #36
+2026/08/28-19:58:17.945 8774 Delete type=2 #40
+2026/08/28-19:58:17.945 8774 Delete type=0 #41
+2026/08/28-19:58:17.945 8774 Delete type=2 #42
+2026/08/28-19:58:17.945 8774 Delete type=0 #44
+2026/08/28-19:58:17.945 8774 Delete type=2 #45
+2026/08/28-19:59:18.015 6a8 Level-0 table #54: started
+2026/08/28-19:59:18.029 6a8 Level-0 table #54: 140814 bytes OK
+2026/08/28-19:59:18.032 6a8 Delete type=0 #49

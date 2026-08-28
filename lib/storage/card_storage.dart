@@ -19,17 +19,21 @@ class CardStorage {
     final String? dataString = prefs.getString('saved_card_database');
     final String? kwString = prefs.getString('saved_keyword_database');
 
-    if (dataString != null && kwString != null) {
-      // 로컬에 저장된 수정본이 있으면 로드
+    // 카드와 키워드는 별도 저장되므로 한쪽이 없어도 다른 쪽을 초기화하지 않음.
+    if (dataString != null) {
       final List<dynamic> jsonList = jsonDecode(dataString);
       cards = jsonList.map((e) => CardData.fromJson(e)).toList();
+    } else {
+      await _loadDefaultCards();
+      await saveCards();
+    }
 
+    if (kwString != null) {
       final List<dynamic> kwList = jsonDecode(kwString);
       keywords = kwList.map((e) => KeywordData.fromJson(e)).toList();
     } else {
-      // 로컬에 없으면 에셋의 기본 DB 로드
-      await resetToDefaultDatabase();
-      return;
+      await _loadDefaultKeywords();
+      await saveKeywords();
     }
 
     // 즐겨찾기 상태 동기화
@@ -39,26 +43,34 @@ class CardStorage {
   /// 에셋의 기본 default_database.json으로 초기화
   static Future<void> resetToDefaultDatabase() async {
     try {
-      final jsonString =
-          await rootBundle.loadString('assets/data/default_database.json');
-      final dynamic decoded = jsonDecode(jsonString);
-
-      if (decoded is Map) {
-        if (decoded['cards'] != null) {
-          final List<dynamic> jsonList = decoded['cards'];
-          cards = jsonList.map((e) => CardData.fromJson(e)).toList();
-        }
-        if (decoded['keywords'] != null) {
-          final List<dynamic> kwList = decoded['keywords'];
-          keywords = kwList.map((e) => KeywordData.fromJson(e)).toList();
-        }
-      }
+      await _loadDefaultCards();
+      await _loadDefaultKeywords();
 
       _syncFavorites();
       await saveCards();
       await saveKeywords();
     } catch (e) {
       debugPrint('기본 DB 로드 실패: $e');
+    }
+  }
+
+  static Future<void> _loadDefaultCards() async {
+    final jsonString =
+        await rootBundle.loadString('assets/data/default_database.json');
+    final dynamic decoded = jsonDecode(jsonString);
+    if (decoded is Map && decoded['cards'] != null) {
+      final List<dynamic> jsonList = decoded['cards'];
+      cards = jsonList.map((e) => CardData.fromJson(e)).toList();
+    }
+  }
+
+  static Future<void> _loadDefaultKeywords() async {
+    final jsonString =
+        await rootBundle.loadString('assets/data/default_database.json');
+    final dynamic decoded = jsonDecode(jsonString);
+    if (decoded is Map && decoded['keywords'] != null) {
+      final List<dynamic> kwList = decoded['keywords'];
+      keywords = kwList.map((e) => KeywordData.fromJson(e)).toList();
     }
   }
 

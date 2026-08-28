@@ -31,6 +31,28 @@ class ThemeModeManager {
   }
 }
 
+class AppFontManager {
+  static const systemFont = 'system';
+  static const builtInFont = 'GyeonggiBatang';
+  static final ValueNotifier<String> fontFamilyNotifier =
+      ValueNotifier<String>(builtInFont);
+
+  static String get fontFamily =>
+      fontFamilyNotifier.value == systemFont ? 'sans-serif' : builtInFont;
+
+  static Future<void> loadFontFamily() async {
+    final prefs = await SharedPreferences.getInstance();
+    fontFamilyNotifier.value =
+        prefs.getString('app_font_family') ?? builtInFont;
+  }
+
+  static Future<void> setFontFamily(String family) async {
+    fontFamilyNotifier.value = family;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_font_family', family);
+  }
+}
+
 class WriteModeManager {
   static final ValueNotifier<bool> isWriteModeNotifier =
       ValueNotifier<bool>(true); // 기본값 ON
@@ -52,6 +74,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await CardStorage.loadCards();
   await ThemeModeManager.loadThemeMode();
+  await AppFontManager.loadFontFamily();
   await WriteModeManager.loadWriteMode();
   runApp(const CardDatabaseApp());
 }
@@ -64,6 +87,9 @@ class CardDatabaseApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeModeManager.themeModeNotifier,
       builder: (context, currentMode, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: AppFontManager.fontFamilyNotifier,
+          builder: (context, _, __) {
         return MaterialApp(
           title: '카드 데이터베이스',
           debugShowCheckedModeBanner: false,
@@ -82,7 +108,7 @@ class CardDatabaseApp extends StatelessWidget {
           theme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.light,
-            fontFamily: 'GyeonggiBatang',
+            fontFamily: AppFontManager.fontFamily,
             scaffoldBackgroundColor: const Color(0xFFF3F6F8),
             cardColor: Colors.white,
             dividerTheme: const DividerThemeData(
@@ -119,7 +145,7 @@ class CardDatabaseApp extends StatelessWidget {
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
-            fontFamily: 'GyeonggiBatang',
+            fontFamily: AppFontManager.fontFamily,
             scaffoldBackgroundColor: const Color(0xFF283B46),
             cardColor: const Color(0xFF1D2C35),
             dividerTheme: const DividerThemeData(
@@ -153,6 +179,8 @@ class CardDatabaseApp extends StatelessWidget {
             ),
           ),
           home: const MainNavigationScreen(),
+        );
+          },
         );
       },
     );
@@ -356,7 +384,7 @@ class ExtraFeaturesScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'v0.3.3',
+                        'v0.4.0 | Game v0.107.1',
                         style: TextStyle(
                             fontSize: 10, color: Colors.grey.withValues(alpha: 0.3)),
                       ),
@@ -767,7 +795,7 @@ class _KeywordCompendiumScreenState extends State<KeywordCompendiumScreen> {
                                           child: Text(
                                             kw.name,
                                             style: TextStyle(
-                                              fontFamily: 'GyeonggiBatang',
+                                              fontFamily: AppFontManager.fontFamily,
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                               color: isDark
@@ -792,7 +820,7 @@ class _KeywordCompendiumScreenState extends State<KeywordCompendiumScreen> {
                                       kw.description,
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
-                                        fontFamily: 'GyeonggiBatang',
+                                        fontFamily: AppFontManager.fontFamily,
                                         fontSize: 14,
                                         color: isDark
                                             ? Colors.white
@@ -823,6 +851,31 @@ class _KeywordCompendiumScreenState extends State<KeywordCompendiumScreen> {
 class SettingsScreen extends StatelessWidget {
   final VoidCallback onDataChanged;
   const SettingsScreen({super.key, required this.onDataChanged});
+
+  Future<void> _showWriteModeNotice(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('쓰기 모드가 켜졌습니다!'),
+        content: const Text(
+          '카드, 키워드 데이터를 작성/편집/삭제하거나 직접 만든 카드 데이터베이스를 내보내거나 복원할 수 있는 여러 가지 메뉴가 추가되었습니다.\n"기본 데이터로 초기화" 시 초기 상태로 돌아갑니다,\n\n추가된 메뉴:\n추가 기능 - 새 카드 등록\n키워드 도감 (추가 기능) - 키워드 추가, 숨김 키워드 포함하여 보기, 모든 키워드 일괄 적용. 키워드를 길게 클릭하면 수정 및 삭제가 가능합니다.\n카드 상세 페이지 - 카드 편집, 카드 삭제\n환경설정 - 데이터베이스 관리의 모든 설정',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await WriteModeManager.setWriteMode(true);
+      if (context.mounted) {
+        AppToast.show(context, '쓰기 모드가 켜졌습니다.');
+      }
+    }
+  }
 
   void _showResetToDefaultDialog(BuildContext context) {
     showDialog(
@@ -1142,6 +1195,42 @@ class SettingsScreen extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
+              '폰트 설정',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB0BEC5),
+              ),
+            ),
+          ),
+          ValueListenableBuilder<String>(
+            valueListenable: AppFontManager.fontFamilyNotifier,
+            builder: (context, currentFont, _) => Column(
+              children: [
+                RadioListTile<String>(
+                  title: const Text('기본 글꼴'),
+                  value: AppFontManager.builtInFont,
+                  groupValue: currentFont,
+                  onChanged: (font) {
+                    if (font != null) AppFontManager.setFontFamily(font);
+                  },
+                ),
+                RadioListTile<String>(
+                  title: const Text('시스템 폰트'),
+                  subtitle: const Text('시스템에서 사용하는 폰트가 적용됩니다.', style: TextStyle(fontSize: 13)),
+                  value: AppFontManager.systemFont,
+                  groupValue: currentFont,
+                  onChanged: (font) {
+                    if (font != null) AppFontManager.setFontFamily(font);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
               '데이터베이스 관리',
               style: TextStyle(
                 fontSize: 14,
@@ -1165,11 +1254,12 @@ class SettingsScreen extends StatelessWidget {
                     value: isWriteMode,
                     activeThumbColor: Colors.amberAccent,
                     onChanged: (val) {
-                      WriteModeManager.setWriteMode(val);
-                      AppToast.show(
-                        context,
-                        val ? '쓰기 모드가 켜졌습니다.' : '쓰기 모드가 꺼졌습니다.',
-                      );
+                      if (val && !isWriteMode) {
+                        _showWriteModeNotice(context);
+                        return;
+                      }
+                      WriteModeManager.setWriteMode(false);
+                      AppToast.show(context, '쓰기 모드가 꺼졌습니다.');
                     },
                   ),
                   ListTile(
@@ -1253,7 +1343,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             title: const Text('버전 정보',
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            trailing: const Text('v1.0.3', style: TextStyle(fontSize: 13)),
+            trailing: const Text('v0.4.0', style: TextStyle(fontSize: 13)),
             onTap: () {},
           ),
         ],
@@ -1809,7 +1899,7 @@ class _CardCompendiumScreenState extends State<CardCompendiumScreen> {
           ),
           IconButton(
             icon: Icon(
-              showUpgrades ? Icons.flash_on : Icons.flash_off,
+              showUpgrades ? Icons.arrow_upward : Icons.arrow_upward_outlined,
               color: showUpgrades ? const Color(0xFFAAFB50) : Colors.grey,
             ),
             tooltip: showUpgrades ? '강화 해제' : '강화 효과 일괄 보기',
@@ -1995,7 +2085,7 @@ class _CardCompendiumScreenState extends State<CardCompendiumScreen> {
                     fontSize: fontSize,
                     fontWeight: FontWeight.bold,
                     color: isUp
-                      ? const Color(0xFF437A0B)
+                      ? const Color(0xFFAAFB50)
                       : (Theme.of(context).brightness == Brightness.dark
                         ? Colors.white
                         : const Color(0xFF1E293B)),
@@ -2103,9 +2193,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         ? card.upgradedCost!
         : card.cost;
     final displayCostLabel = card.getCostLabel(isUpgraded);
-    final displayStarCost = (isUpgraded && card.upgradedStarCost != null)
-        ? card.upgradedStarCost!
-        : card.starCost;
+    final displayStarCost = card.getStarCostLabel(isUpgraded);
 
     final hasCostDecreased = isUpgraded &&
         card.upgradedCost != null &&
@@ -2144,7 +2232,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         color: Color(effectiveColor.colorHex),
         fontWeight: FontWeight.bold,
         fontSize: 15,
-        fontFamily: 'GyeonggiBatang',
+        fontFamily: AppFontManager.fontFamily,
       ),
     ));
 
@@ -2155,7 +2243,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           color: slashColor,
           fontWeight: FontWeight.bold,
           fontSize: 15,
-          fontFamily: 'GyeonggiBatang',
+          fontFamily: AppFontManager.fontFamily,
         ),
       ));
       metaSpans.add(TextSpan(
@@ -2164,7 +2252,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           color: Color(card.rarity.colorHex),
           fontWeight: FontWeight.bold,
           fontSize: 15,
-          fontFamily: 'GyeonggiBatang',
+          fontFamily: AppFontManager.fontFamily,
         ),
       ));
       metaSpans.add(TextSpan(
@@ -2173,7 +2261,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           color: slashColor,
           fontWeight: FontWeight.bold,
           fontSize: 15,
-          fontFamily: 'GyeonggiBatang',
+          fontFamily: AppFontManager.fontFamily,
         ),
       ));
       metaSpans.add(TextSpan(
@@ -2182,7 +2270,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           color: typeColor,
           fontWeight: FontWeight.bold,
           fontSize: 15,
-          fontFamily: 'GyeonggiBatang',
+          fontFamily: AppFontManager.fontFamily,
         ),
       ));
     }
@@ -2192,7 +2280,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       builder: (context, isWriteMode, _) {
         return Scaffold(
           appBar: AppBar(
-            title: Text(card.name + (isUpgraded ? '+' : '')),
+            title: Text(
+              card.name + (isUpgraded ? '+' : ''),
+              style: TextStyle(
+                color: isUpgraded ? const Color(0xFFAAFB50) : null,
+              ),
+            ),
             actions: [
               IconButton(
                 icon: Icon(
@@ -2225,11 +2318,82 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               ],
             ],
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.66, 1.0],
+                colors: [
+                  Color(effectiveColor.colorHex).withValues(alpha: 0.28),
+                  Color(effectiveColor.colorHex).withValues(alpha: 0.0),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final screenSize = MediaQuery.sizeOf(context);
+                    final isCompactLayout =
+                      screenSize.width / screenSize.height >= 3 / 4;
+                    const layoutGap = 12.0;
+                    final availableWidth = constraints.maxWidth - layoutGap;
+                    final imageWidth = isCompactLayout
+                      ? availableWidth / 3
+                        : constraints.maxWidth * 0.75;
+                    final infoWidth = isCompactLayout
+                      ? availableWidth * 2 / 3
+                        : constraints.maxWidth;
+
+                    return Flex(
+                      direction:
+                          isCompactLayout ? Axis.horizontal : Axis.vertical,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isCompactLayout)
+                          SizedBox(
+                            width: imageWidth,
+                            child: AspectRatio(
+                              aspectRatio: 3 / 4,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: AppCardImage(
+                                  imagePath: displayImage,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Center(
+                            child: SizedBox(
+                              width: imageWidth,
+                              child: AspectRatio(
+                                aspectRatio: 3 / 4,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: AppCardImage(
+                                    imagePath: displayImage,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (isCompactLayout)
+                          const SizedBox(width: 12)
+                        else
+                          const SizedBox(height: 10),
+                        SizedBox(
+                          width: infoWidth,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                 if (card.isSharedStarter) ...[
                   Container(
                     padding:
@@ -2286,19 +2450,6 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   ),
                   const SizedBox(height: 10),
                 ],
-                Center(
-                  child: AspectRatio(
-                    aspectRatio: 3 / 4,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: AppCardImage(
-                        imagePath: displayImage,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
                 if (card.hasUpgrade)
                   InkWell(
                     borderRadius: BorderRadius.circular(8),
@@ -2450,7 +2601,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                                   ? const EdgeInsets.symmetric(horizontal: 3)
                                   : EdgeInsets.zero,
                               child: Text(
-                                '$displayStarCost',
+                                displayStarCost,
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -2511,8 +2662,16 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     ),
                   ),
                 ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
+          ),
           ),
         );
       },
@@ -2634,7 +2793,7 @@ class _CardSearchScreenState extends State<CardSearchScreen> {
           ),
           IconButton(
             icon: Icon(
-              showUpgrades ? Icons.flash_on : Icons.flash_off,
+              showUpgrades ? Icons.arrow_upward : Icons.arrow_upward_outlined,
               color: showUpgrades ? const Color(0xFFAAFB50) : Colors.grey,
             ),
             tooltip: showUpgrades ? '강화 해제' : '강화 효과 일괄 보기',
@@ -3063,9 +3222,9 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
                     '강화된 효과를 적용하기 위해 텍스트를 초록색으로 강조합니다. 단, 하이퍼링크에는 적용할 수 없습니다.',
                 exampleInput: '피해를 ^9^ 줍니다.',
                 exampleOutput: RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(
-                        fontFamily: 'GyeonggiBatang',
+                        fontFamily: AppFontManager.fontFamily,
                         fontSize: 13,
                         color: Colors.white),
                     children: [
@@ -3164,6 +3323,7 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
     required String label,
     required String? imagePath,
     required VoidCallback onPressed,
+    VoidCallback? onRemove,
   }) {
     final hasImage = imagePath != null && imagePath.isNotEmpty;
     return Expanded(
@@ -3206,6 +3366,15 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (hasImage && onRemove != null)
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 18),
+                color: Colors.redAccent,
+                tooltip: '이미지 제거',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: onRemove,
+              ),
           ],
         ),
       ),
@@ -3586,6 +3755,9 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
                                 _upgradedVariantImages[_activeEditingColor],
                             onPressed: () => _pickImage(true,
                                 variantColor: _activeEditingColor),
+                            onRemove: () => setState(() =>
+                              _upgradedVariantImages.remove(
+                                _activeEditingColor)),
                           ),
                         ],
                       ),
@@ -3605,6 +3777,7 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
                       label: '강화 이미지',
                       imagePath: _upgradedImagePath,
                       onPressed: () => _pickImage(true),
+                      onRemove: () => setState(() => _upgradedImagePath = null),
                     ),
                   ],
                 ),
@@ -3772,7 +3945,7 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
                   initialValue: _starCost?.toString() ?? '',
                   decoration: const InputDecoration(
                     labelText: '★ 별 비용 (리젠트 전용, 없으면 공백)',
-                    hintText: '숫자 입력',
+                    hintText: '숫자 입력 (-1 입력 시 X로 표시)',
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
@@ -3855,7 +4028,7 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
                   initialValue: _upgradedStarCost?.toString() ?? '',
                   decoration: const InputDecoration(
                     labelText: '★ 강화 시 변경될 별 비용 (없으면 공백)',
-                    hintText: '숫자 입력',
+                    hintText: '숫자 입력 (-1 입력 시 X로 표시)',
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,

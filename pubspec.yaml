@@ -2,7 +2,7 @@ name: card_index
 description: StS2 card index database app.
 publish_to: 'none'
 
-version: 0.3.3+28
+version: 0.4.0+40
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

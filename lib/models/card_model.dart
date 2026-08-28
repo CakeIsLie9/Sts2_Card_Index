@@ -45,11 +45,11 @@ enum CardType {
 enum CardRarity {
   token('토큰', 0, 0xFF9E9E9E),
   special('기타', 0, 0xFF9E9E9E),
-  common('일반', 2, 0xFFB0BEC5),
-  uncommon('고급', 3, 0xFF98D4D9),
+  common('일반', 2, 0xFF90A4AE),
+  uncommon('고급', 3, 0xFF26C6DA),
   rare('희귀', 4, 0xFFFFD700),
   event('이벤트', 5, 0xFF78CA76),
-  ancient('고대의 존재', 6, 0xFFAB47BC),
+  ancient('고대', 6, 0xFFD0A9E8),
   starter('시작', 1, 0xFF78909C);
 
   final String label;
@@ -153,6 +153,16 @@ class CardData {
       return '$val';
     }
     return c.label;
+  }
+
+  // 별 비용은 호환성을 위해 int를 유지하며, -1은 특수 비용 X로 표시함.
+  // 별 비용 타입을 변경할 때는 이 변환과 JSON 저장/복원을 함께 수정할 것.
+  String? getStarCostLabel(bool isUpgraded) {
+    final value = (isUpgraded && upgradedStarCost != null)
+        ? upgradedStarCost!
+        : starCost;
+    if (value == null) return null;
+    return value == -1 ? 'X' : '$value';
   }
 
   double getCostValue(bool isUpgraded) {
