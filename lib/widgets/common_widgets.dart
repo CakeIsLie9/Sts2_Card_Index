@@ -931,7 +931,6 @@ class InteractiveCardText extends StatelessWidget {
     final textPainter = TextPainter(
       text: TextSpan(text: normalizedText, style: effectiveStyle),
       textDirection: Directionality.of(context),
-      maxLines: 1,
     )..layout(maxWidth: renderObject.size.width);
 
     final textOffset = textPainter.getPositionForOffset(localPosition).offset;
@@ -993,7 +992,6 @@ class InteractiveCardText extends StatelessWidget {
     final textPainter = TextPainter(
       text: TextSpan(text: normalizedText, style: effectiveStyle),
       textDirection: Directionality.of(context),
-      maxLines: 1,
     )..layout(maxWidth: renderObject.size.width);
 
     final textOffset = textPainter.getPositionForOffset(localPosition).offset;
