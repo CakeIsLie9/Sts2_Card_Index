@@ -366,15 +366,6 @@ class CardPreviewHelper {
     if (displayColor == CardColor.regent && starValue != null && starValue != -1) {
       children.addAll([
         const SizedBox(width: 4),
-        Text(
-          starValue.toString(),
-          style: textStyle ??
-              const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(width: 2),
         Image.asset(
           'assets/icons/star.webp',
           width: iconSize,
@@ -384,6 +375,15 @@ class CardPreviewHelper {
             size: iconSize,
             color: Colors.cyanAccent,
           ),
+        ),
+        const SizedBox(width: 2),
+        Text(
+          starValue.toString(),
+          style: textStyle ??
+              const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
         ),
       ]);
     }
@@ -417,6 +417,7 @@ class CardPreviewHelper {
             card.upgradedEffect!.isNotEmpty)
         ? card.upgradedEffect!
         : card.effect;
+    final displayCostLabel = card.getCostDisplayText(isUpgraded);
     final isUnplayable = ((isUpgraded && card.upgradedCost != null)
         ? card.upgradedCost!
         : card.cost) ==
@@ -495,12 +496,9 @@ class CardPreviewHelper {
                               ),
                             ),
                             if (!isUnplayable) ...[
-                              CardPreviewHelper.buildCostDisplay(
-                                card: card,
-                                isUpgraded: isUpgraded,
-                                displayColor: effectiveColor,
-                                iconSize: 14,
-                                textStyle: TextStyle(
+                              Text(
+                                displayCostLabel,
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: isDark
@@ -656,11 +654,12 @@ class CardPreviewHelper {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      keyword.description,
-                      style: TextStyle(
+                    InteractiveCardText(
+                      text: keyword.description,
+                      cardColor: CardColor.colorless,
+                      baseStyle: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFFE5E7E9),
+                        color: const Color(0xFFE5E7E9),
                         height: 1.35,
                         fontFamily: AppFontManager.fontFamily,
                       ),
@@ -835,27 +834,7 @@ class InteractiveCardText extends StatelessWidget {
           style: effectiveStyle,
         ));
       }
-      final richText = Text.rich(
-        TextSpan(children: spans),
-        style: effectiveStyle,
-        strutStyle: StrutStyle.fromTextStyle(effectiveStyle),
-      );
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTapUp: (details) => _handleTapUp(
-          context,
-          details.globalPosition,
-          normalizedText,
-          effectiveStyle,
-        ),
-        onLongPressStart: (details) => _handleLongPress(
-          context,
-          details.globalPosition,
-          normalizedText,
-          effectiveStyle,
-        ),
-        child: richText,
-      );
+      return Text.rich(TextSpan(children: spans), style: effectiveStyle);
     }
 
     final blockRegex = RegExp(r'\^(.*?)\^');
@@ -894,253 +873,7 @@ class InteractiveCardText extends StatelessWidget {
       ));
     }
 
-    final richText = Text.rich(
-      TextSpan(children: spans),
-      style: effectiveStyle,
-      strutStyle: StrutStyle.fromTextStyle(effectiveStyle),
-    );
-
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTapUp: (details) => _handleTapUp(
-        context,
-        details.globalPosition,
-        normalizedText,
-        effectiveStyle,
-      ),
-      onLongPressStart: (details) => _handleLongPress(
-        context,
-        details.globalPosition,
-        normalizedText,
-        effectiveStyle,
-      ),
-      child: richText,
-    );
-  }
-
-  void _handleTapUp(
-    BuildContext context,
-    Offset globalPosition,
-    String normalizedText,
-    TextStyle effectiveStyle,
-  ) {
-    final renderObject = context.findRenderObject() as RenderBox?;
-    if (renderObject == null) return;
-
-    final localPosition = renderObject.globalToLocal(globalPosition);
-    final textPainter = TextPainter(
-      text: TextSpan(text: normalizedText, style: effectiveStyle),
-      textDirection: Directionality.of(context),
-    )..layout(maxWidth: renderObject.size.width);
-
-    final textOffset = textPainter.getPositionForOffset(localPosition).offset;
-    final match = _matchCardOrKeywordAtOffset(normalizedText, textOffset);
-    if (match == null) return;
-
-    if (match.type == 'card') {
-      String rawName = match.value.trim();
-      final isUp = rawName.endsWith('+');
-      if (isUp) rawName = rawName.substring(0, rawName.length - 1).trim();
-
-      CardData? card;
-      try {
-        card = CardStorage.cards.firstWhere((c) => c.name == rawName);
-      } catch (_) {}
-      if (card == null) return;
-
-      final resolvedCard = card;
-      if (resolvedCard == null) return;
-
-      CardPreviewHelper.hide();
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CardDetailScreen(
-            card: resolvedCard,
-            initialUpgraded: isUp,
-          ),
-        ),
-      );
-    } else if (match.type == 'keyword') {
-      KeywordData? keyword;
-      try {
-        keyword = CardStorage.keywords.firstWhere((k) => k.name.trim() == match.value.trim());
-      } catch (_) {}
-      if (keyword == null) return;
-
-      final targetRect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
-      final relatedCard = _findRelatedCardForKeyword(keyword);
-      CardPreviewHelper.showKeyword(
-        context: context,
-        keyword: keyword,
-        targetRect: targetRect,
-        relatedCard: relatedCard,
-      );
-    }
-  }
-
-  void _handleLongPress(
-    BuildContext context,
-    Offset globalPosition,
-    String normalizedText,
-    TextStyle effectiveStyle,
-  ) {
-    final renderObject = context.findRenderObject() as RenderBox?;
-    if (renderObject == null) return;
-
-    final localPosition = renderObject.globalToLocal(globalPosition);
-    final textPainter = TextPainter(
-      text: TextSpan(text: normalizedText, style: effectiveStyle),
-      textDirection: Directionality.of(context),
-    )..layout(maxWidth: renderObject.size.width);
-
-    final textOffset = textPainter.getPositionForOffset(localPosition).offset;
-    final match = _matchCardOrKeywordAtOffset(normalizedText, textOffset);
-    if (match == null) return;
-
-    final targetRect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
-
-    if (match.type == 'card') {
-      String rawName = match.value.trim();
-      final isUp = rawName.endsWith('+');
-      if (isUp) rawName = rawName.substring(0, rawName.length - 1).trim();
-
-      CardData? card;
-      try {
-        card = CardStorage.cards.firstWhere((c) => c.name == rawName);
-      } catch (_) {}
-      if (card == null) return;
-
-      final resolvedCard = card;
-      if (resolvedCard == null) return;
-
-      CardPreviewHelper.show(
-        context: context,
-        card: resolvedCard,
-        isUpgraded: isUp,
-        targetRect: targetRect,
-        variantColor: resolvedCard.isSharedStarter ? CardColor.ironclad : resolvedCard.color,
-      );
-      return;
-    }
-
-    KeywordData? keyword;
-    try {
-      keyword = CardStorage.keywords.firstWhere((k) => k.name.trim() == match.value.trim());
-    } catch (_) {}
-    if (keyword == null) return;
-
-    final relatedCard = _findRelatedCardForKeyword(keyword);
-    CardPreviewHelper.showKeyword(
-      context: context,
-      keyword: keyword,
-      targetRect: targetRect,
-      relatedCard: relatedCard,
-    );
-  }
-
-  CardData? _findRelatedCardForKeyword(KeywordData keyword) {
-    final normalizedKeyword = keyword.name.trim();
-    if (normalizedKeyword.isEmpty) return null;
-
-    // Special mapping for specific keywords
-    if (normalizedKeyword == '단조') {
-      try {
-        return CardStorage.cards.firstWhere(
-          (c) => c.id == 'c1aa536e-a7b9-40dd-8a94-de1c5cd2ce44',
-        );
-      } catch (_) {}
-    }
-
-    for (final card in CardStorage.cards) {
-      final searchable = (card.effect + ' ' + (card.upgradedEffect ?? '')).toLowerCase();
-      final keywordText = '[${normalizedKeyword}]';
-      if (searchable.contains(keywordText.toLowerCase())) {
-        return card;
-      }
-    }
-    return null;
-  }
-
-  ({String type, String value})? _matchCardOrKeywordAtOffset(
-    String text,
-    int offset,
-  ) {
-    final linkMatches = RegExp(r'\[\[(.*?)\]\]').allMatches(text);
-    for (final match in linkMatches) {
-      if (offset >= match.start && offset <= match.end) {
-        final value = match.group(1)?.trim() ?? '';
-        if (value.isNotEmpty) return (type: 'card', value: value);
-      }
-    }
-
-    final keywordMatches = RegExp(r'\[(.*?)\]').allMatches(text);
-    for (final match in keywordMatches) {
-      if (offset >= match.start && offset <= match.end) {
-        final value = match.group(1)?.trim() ?? '';
-        if (value.isNotEmpty) return (type: 'keyword', value: value);
-      }
-    }
-
-    return null;
-  }
-
-  InlineSpan _buildSymbolSpan(
-    String symbol,
-    TextStyle style,
-    bool isEnhancedBlock,
-    bool isDark,
-  ) {
-    final baseStyle = isEnhancedBlock
-        ? style.copyWith(
-            color: isDark ? const Color(0xFFAAFB50) : const Color(0xFF437A0B),
-            fontWeight: FontWeight.bold,
-          )
-        : style;
-
-    if (symbol == '@') {
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 1.5),
-          child: Image.asset(
-            cardColor.iconPath,
-            width: 14,
-            height: 14,
-            errorBuilder: (c, o, s) => Icon(
-              Icons.circle,
-              size: 12,
-              color: Color(cardColor.colorHex),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (symbol == '*') {
-      if (cardColor == CardColor.regent) {
-        return WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 1.5),
-            child: Image.asset(
-              'assets/icons/star.webp',
-              width: 14,
-              height: 14,
-              errorBuilder: (c, o, s) => const Icon(
-                Icons.star,
-                color: Colors.cyanAccent,
-                size: 14,
-              ),
-            ),
-          ),
-        );
-      }
-
-      return TextSpan(text: '*', style: baseStyle);
-    }
-
-    return TextSpan(text: symbol, style: baseStyle);
+    return Text.rich(TextSpan(children: spans), style: effectiveStyle);
   }
 
   List<InlineSpan> _parseInnerContent(
@@ -1183,7 +916,38 @@ class InteractiveCardText extends StatelessWidget {
         spans.add(_buildKeywordSpan(
             context, keyword, isEnhancedBlock, effectiveStyle, isDark));
       } else if (symbol != null) {
-        spans.add(_buildSymbolSpan(symbol, effectiveStyle, isEnhancedBlock, isDark));
+        Widget iconWidget;
+        if (symbol == '*') {
+          if (cardColor == CardColor.regent) {
+            iconWidget = Image.asset(
+              'assets/icons/star.webp',
+              width: 16,
+              height: 16,
+              errorBuilder: (c, o, s) =>
+                  const Icon(Icons.star, color: Colors.cyanAccent, size: 16),
+            );
+          } else {
+            iconWidget = Text('*', style: effectiveStyle);
+          }
+        } else if (symbol == '@') {
+          iconWidget = Image.asset(
+            cardColor.iconPath,
+            width: 16,
+            height: 16,
+            errorBuilder: (c, o, s) =>
+                Icon(Icons.circle, color: Color(cardColor.colorHex), size: 14),
+          );
+        } else {
+          iconWidget = const SizedBox.shrink();
+        }
+
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: iconWidget,
+          ),
+        ));
       }
 
       lastIndex = match.end;
@@ -1225,20 +989,64 @@ class InteractiveCardText extends StatelessWidget {
     final linkColor =
         isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309);
 
+    if (card == null) {
+      return TextSpan(
+        text: rawName,
+        style: baseStyle.copyWith(
+          color: Colors.grey,
+          decoration: TextDecoration.lineThrough,
+        ),
+      );
+    }
+
     final linkStyle = baseStyle.copyWith(
-      color: card == null ? Colors.grey : linkColor,
+      color: linkColor,
       fontWeight: FontWeight.bold,
-      decoration: card == null ? TextDecoration.lineThrough : TextDecoration.underline,
-      decorationColor: card == null ? Colors.grey : linkColor,
+      decoration: TextDecoration.underline,
+      decorationColor: linkColor,
       backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
       fontSize: baseStyle.fontSize,
       height: baseStyle.height,
       fontFamily: baseStyle.fontFamily,
     );
 
-    return TextSpan(
-      text: rawName,
-      style: linkStyle,
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: Builder(
+        builder: (linkContext) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            CardPreviewHelper.hide();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CardDetailScreen(
+                  card: card!,
+                  initialUpgraded: isUp,
+                ),
+              ),
+            );
+          },
+          onLongPress: () {
+            final box = linkContext.findRenderObject() as RenderBox?;
+            final rect = box == null
+                ? const Rect.fromLTWH(0, 0, 0, 0)
+                : box.localToGlobal(Offset.zero) & box.size;
+            CardPreviewHelper.show(
+              context: context,
+              card: card!,
+              isUpgraded: isUp,
+              targetRect: rect,
+              variantColor: card!.isSharedStarter
+                  ? CardColor.ironclad
+                  : card!.color,
+              showThumbnail: true,
+            );
+          },
+          child: Text(rawName, style: linkStyle),
+        ),
+      ),
     );
   }
 
@@ -1258,8 +1066,19 @@ class InteractiveCardText extends StatelessWidget {
     final linkColor =
         isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309);
 
+    if (kw == null) {
+      return TextSpan(
+        text: kwName,
+        style: baseStyle.copyWith(
+          color: linkColor,
+          fontWeight: FontWeight.bold,
+          backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
+        ),
+      );
+    }
+
     final keywordStyle = baseStyle.copyWith(
-      color: kw == null ? linkColor : linkColor,
+      color: linkColor,
       fontWeight: FontWeight.bold,
       decoration: TextDecoration.none,
       backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
@@ -1268,9 +1087,39 @@ class InteractiveCardText extends StatelessWidget {
       fontFamily: baseStyle.fontFamily,
     );
 
-    return TextSpan(
-      text: kwName,
-      style: keywordStyle,
+    void showKeywordPopup(BuildContext linkContext) {
+      final box = linkContext.findRenderObject() as RenderBox?;
+      final rect = box == null
+          ? const Rect.fromLTWH(0, 0, 0, 0)
+          : box.localToGlobal(Offset.zero) & box.size;
+      CardData? relatedCard;
+      if (kwName == '단조') {
+        final matchingCards = CardStorage.cards
+            .where((card) => card.name.trim() == '군주의 칼날')
+            .toList();
+        if (matchingCards.length == 1) relatedCard = matchingCards.single;
+      }
+      if (kw == null) return;
+      if (kw == null) return;
+      CardPreviewHelper.showKeyword(
+        context: context,
+        keyword: kw,
+        targetRect: rect,
+        relatedCard: relatedCard,
+      );
+    }
+
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: Builder(
+        builder: (linkContext) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => showKeywordPopup(linkContext),
+          onLongPress: () => showKeywordPopup(linkContext),
+          child: Text(kwName, style: keywordStyle),
+        ),
+      ),
     );
   }
 }
@@ -1374,45 +1223,38 @@ class SearchEffectText extends StatelessWidget {
           ),
         ));
       } else if (symbol != null) {
-        if (symbol == '@') {
-          spans.add(WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1.5),
-              child: Image.asset(
-                cardColor.iconPath,
-                width: 14,
-                height: 14,
-                errorBuilder: (c, o, s) => Icon(
-                  Icons.circle,
-                  size: 12,
-                  color: Color(cardColor.colorHex),
-                ),
-              ),
-            ),
-          ));
-        } else if (symbol == '*') {
+        Widget iconWidget;
+        if (symbol == '*') {
           if (cardColor == CardColor.regent) {
-            spans.add(WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                child: Image.asset(
-                  'assets/icons/star.webp',
-                  width: 14,
-                  height: 14,
-                  errorBuilder: (c, o, s) => const Icon(
-                    Icons.star,
-                    color: Colors.cyanAccent,
-                    size: 14,
-                  ),
-                ),
-              ),
-            ));
+            iconWidget = Image.asset(
+              'assets/icons/star.webp',
+              width: 14,
+              height: 14,
+              errorBuilder: (c, o, s) =>
+                  const Icon(Icons.star, color: Colors.cyanAccent, size: 14),
+            );
           } else {
-            spans.add(TextSpan(text: '*', style: baseStyle));
+            iconWidget = Text('*', style: baseStyle);
           }
+        } else if (symbol == '@') {
+          iconWidget = Image.asset(
+            cardColor.iconPath,
+            width: 14,
+            height: 14,
+            errorBuilder: (c, o, s) =>
+                Icon(Icons.circle, color: Color(cardColor.colorHex), size: 12),
+          );
+        } else {
+          iconWidget = const SizedBox.shrink();
         }
+
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1.5),
+            child: iconWidget,
+          ),
+        ));
       }
 
       lastIndex = match.end;
@@ -1428,7 +1270,6 @@ class SearchEffectText extends StatelessWidget {
     return RichText(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      strutStyle: StrutStyle.fromTextStyle(baseStyle),
       text: TextSpan(style: baseStyle, children: spans),
     );
   }
