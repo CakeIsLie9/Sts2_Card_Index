@@ -1016,7 +1016,7 @@ class InteractiveCardText extends StatelessWidget {
       baseline: TextBaseline.alphabetic,
       child: Builder(
         builder: (linkContext) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
+          behavior: HitTestBehavior.translucent,
           onTap: () {
             CardPreviewHelper.hide();
             Navigator.push(
@@ -1045,7 +1045,10 @@ class InteractiveCardText extends StatelessWidget {
               showThumbnail: true,
             );
           },
-          child: Text(rawName, style: linkStyle),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
+            child: Text(rawName, style: linkStyle),
+          ),
         ),
       ),
     );
@@ -1109,10 +1112,13 @@ class InteractiveCardText extends StatelessWidget {
       baseline: TextBaseline.alphabetic,
       child: Builder(
         builder: (linkContext) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
+          behavior: HitTestBehavior.translucent,
           onTap: () => showKeywordPopup(linkContext),
           onLongPress: () => showKeywordPopup(linkContext),
-          child: Text(kwName, style: keywordStyle),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
+            child: Text(kwName, style: keywordStyle),
+          ),
         ),
       ),
     );
