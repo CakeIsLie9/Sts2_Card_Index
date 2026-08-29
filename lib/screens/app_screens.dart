@@ -35,15 +35,17 @@ class AppFontManager {
   static const systemFont = 'system';
   static const builtInFont = 'GyeonggiBatang';
   static final ValueNotifier<String> fontFamilyNotifier =
-      ValueNotifier<String>(builtInFont);
+      ValueNotifier<String>(systemFont);
 
   static String? get fontFamily =>
-      fontFamilyNotifier.value == systemFont ? null : builtInFont;
+      fontFamilyNotifier.value == systemFont
+          ? null
+          : fontFamilyNotifier.value;
 
   static Future<void> loadFontFamily() async {
     final prefs = await SharedPreferences.getInstance();
-    fontFamilyNotifier.value =
-        prefs.getString('app_font_family') ?? builtInFont;
+    final savedFont = prefs.getString('app_font_family');
+    fontFamilyNotifier.value = savedFont ?? systemFont;
   }
 
   static Future<void> setFontFamily(String family) async {
@@ -384,7 +386,7 @@ class ExtraFeaturesScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'v0.4.0 | Game v0.107.1',
+                        'v0.4.1 | Game v0.107.1',
                         style: TextStyle(
                             fontSize: 10, color: Colors.grey.withValues(alpha: 0.3)),
                       ),
@@ -1343,7 +1345,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             title: const Text('버전 정보',
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            trailing: const Text('v0.4.0', style: TextStyle(fontSize: 13)),
+            trailing: const Text('v0.4.1', style: TextStyle(fontSize: 13)),
             onTap: () {},
           ),
         ],

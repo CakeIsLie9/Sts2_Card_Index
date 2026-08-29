@@ -802,7 +802,8 @@ class InteractiveCardText extends StatelessWidget {
       fontSize: 14.0,
       height: 1.5,
       color: isDark ? Colors.white : const Color(0xFF1E293B),
-      fontFamily: AppFontManager.fontFamily,
+      fontFamily: AppFontManager.fontFamily ??
+          DefaultTextStyle.of(context).style.fontFamily,
     );
 
     final effectiveStyle = baseStyle != null
@@ -1143,7 +1144,8 @@ class SearchEffectText extends StatelessWidget {
     final baseStyle = TextStyle(
       fontSize: 13,
       color: isDark ? const Color(0xFFB0BEC5) : const Color(0xFF475569),
-      fontFamily: AppFontManager.fontFamily,
+      fontFamily: AppFontManager.fontFamily ??
+          DefaultTextStyle.of(context).style.fontFamily,
     );
     final renderText = text.replaceAllMapped(
       RegExp(r'#(.+?)#'),
