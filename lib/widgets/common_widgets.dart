@@ -41,11 +41,7 @@ class KoreanSearchHelper {
 
   /// [카드명/키워드명 전용] 일반 텍스트 매칭 + 초성 매칭 모두 허용
   static bool matches(String target, String query) {
-    final cleanTarget = target
-        .toLowerCase()
-        .replaceAll(' ', '')
-        .replaceAllMapped(RegExp(r'#(.+?)#'), (match) => match.group(1)!)
-        .replaceAll('#', '');
+    final cleanTarget = target.toLowerCase().replaceAll(' ', '');
     final cleanQuery = query.toLowerCase().replaceAll(' ', '');
     if (cleanQuery.isEmpty) return true;
 
@@ -85,10 +81,8 @@ class KoreanSearchHelper {
       .replaceAllMapped(RegExp(r'\[\[(.*?)\]\]'), (match) => match.group(1)!)
       .replaceAllMapped(RegExp(r'\[(.*?)\]'), (match) => match.group(1)!)
       .replaceAllMapped(RegExp(r'\^(.*?)\^'), (match) => match.group(1)!)
-      .replaceAllMapped(RegExp(r'#(.+?)#'), (match) => match.group(1)!)
-      .replaceAll('#', '')
-      .replaceAll('@', ' 에너지 ')
-      .replaceAll('*', ' 별 ');
+        .replaceAll('@', ' 에너지 ')
+        .replaceAll('*', ' 별 ');
     return searchable.toLowerCase();
   }
 }
@@ -201,19 +195,7 @@ class AppToast {
 
 class AnimatedPopupBox extends StatefulWidget {
   final Widget child;
-  final VoidCallback? onDismissed;
-
-  static _AnimatedPopupBoxState? _activeState;
-
-  const AnimatedPopupBox({
-    super.key,
-    required this.child,
-    this.onDismissed,
-  });
-
-  static void dismissCurrent() {
-    _activeState?.dismiss();
-  }
+  const AnimatedPopupBox({super.key, required this.child});
 
   @override
   State<AnimatedPopupBox> createState() => _AnimatedPopupBoxState();
@@ -228,7 +210,6 @@ class _AnimatedPopupBoxState extends State<AnimatedPopupBox>
   @override
   void initState() {
     super.initState();
-    AnimatedPopupBox._activeState = this;
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150),
@@ -242,22 +223,8 @@ class _AnimatedPopupBoxState extends State<AnimatedPopupBox>
     _controller.forward();
   }
 
-  void dismiss() {
-    if (_controller.isAnimating) {
-      _controller.stop();
-    }
-    _controller.reverse().then((_) {
-      if (mounted) {
-        widget.onDismissed?.call();
-      }
-    });
-  }
-
   @override
   void dispose() {
-    if (AnimatedPopupBox._activeState == this) {
-      AnimatedPopupBox._activeState = null;
-    }
     _controller.dispose();
     super.dispose();
   }
@@ -310,88 +277,8 @@ class CardPreviewHelper {
   }
 
   static void hide() {
-    if (_currentEntry != null) {
-      AnimatedPopupBox.dismissCurrent();
-      return;
-    }
-  }
-
-  static Widget buildCostDisplay({
-    required CardData card,
-    required bool isUpgraded,
-    required CardColor displayColor,
-    double iconSize = 14,
-    TextStyle? textStyle,
-  }) {
-    final cost = (isUpgraded && card.upgradedCost != null)
-        ? card.upgradedCost!
-        : card.cost;
-    final starValue = (isUpgraded && card.upgradedStarCost != null)
-        ? card.upgradedStarCost!
-        : card.starCost;
-
-    if (cost == CardCost.none) {
-      return const SizedBox.shrink();
-    }
-
-    final baseLabel = cost == CardCost.cost4Plus
-        ? ((isUpgraded && card.upgradedCost != null)
-                ? (card.upgradedCustomCost ?? card.customCost ?? 4)
-                : (card.customCost ?? 4))
-            .toString()
-        : cost.label;
-
-    final children = <Widget>[
-      Text(
-        baseLabel,
-        style: textStyle ??
-            const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-      ),
-      const SizedBox(width: 2),
-      Image.asset(
-        displayColor.iconPath,
-        width: iconSize,
-        height: iconSize,
-        errorBuilder: (c, o, s) => Icon(
-          Icons.circle,
-          size: iconSize * 0.9,
-          color: Color(displayColor.colorHex),
-        ),
-      ),
-    ];
-
-    if (displayColor == CardColor.regent && starValue != null && starValue != -1) {
-      children.addAll([
-        const SizedBox(width: 4),
-        Text(
-          starValue.toString(),
-          style: textStyle ??
-              const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(width: 2),
-        Image.asset(
-          'assets/icons/star.webp',
-          width: iconSize,
-          height: iconSize,
-          errorBuilder: (c, o, s) => Icon(
-            Icons.star,
-            size: iconSize,
-            color: Colors.cyanAccent,
-          ),
-        ),
-      ]);
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: children,
-    );
+    _currentEntry?.remove();
+    _currentEntry = null;
   }
 
   /// 카드 롱탭 미리보기 팝업 (기존 파라미터 100% 일치 + AppCardImage 적용)
@@ -417,6 +304,7 @@ class CardPreviewHelper {
             card.upgradedEffect!.isNotEmpty)
         ? card.upgradedEffect!
         : card.effect;
+    final displayCostLabel = card.getCostLabel(isUpgraded);
     final isUnplayable = ((isUpgraded && card.upgradedCost != null)
         ? card.upgradedCost!
         : card.cost) ==
@@ -443,110 +331,108 @@ class CardPreviewHelper {
           Positioned(
             left: popupOffset.dx,
             top: popupOffset.dy,
-            child: AnimatedPopupBox(
-              onDismissed: () {
-                _currentEntry?.remove();
-                _currentEntry = null;
-              },
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  width: popupWidth,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1B2529),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFF557887),
-                      width: 1.5,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: popupWidth,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B2529),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF557887),
+                    width: 1.5,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black45,
+                      blurRadius: 16,
+                      offset: Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF202020),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(7)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              card.name + (isUpgraded ? '+' : ''),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
+                                fontFamily: AppFontManager.fontFamily,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (!isUnplayable) ...[
+                            Text(
+                              displayCostLabel,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Image.asset(
+                              effectiveColor.iconPath,
+                              width: 13,
+                              height: 13,
+                              errorBuilder: (c, o, s) => const SizedBox.shrink(),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black45,
-                        blurRadius: 16,
-                        offset: Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF202020),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(7)),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                card.name + (isUpgraded ? '+' : ''),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1E293B),
-                                  fontFamily: AppFontManager.fontFamily,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (!isUnplayable) ...[
-                              CardPreviewHelper.buildCostDisplay(
-                                card: card,
-                                isUpgraded: isUpgraded,
-                                displayColor: effectiveColor,
-                                iconSize: 14,
-                                textStyle: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1E293B),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (showThumbnail && displayImage.isNotEmpty) ...[
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(3),
-                                child: SizedBox(
-                                  width: 54,
-                                  height: 72,
-                                  child: AppCardImage(
-                                    imagePath: displayImage,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                            Expanded(
-                              child: InteractiveCardText(
-                                text: displayEffect,
-                                cardColor: effectiveColor,
-                                baseStyle: const TextStyle(
-                                  fontSize: 12,
-                                  height: 1.35,
-                                  color: Color(0xFFE5E7E9),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (showThumbnail && displayImage.isNotEmpty) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: SizedBox(
+                                width: 54,
+                                height: 72,
+                                child: AppCardImage(
+                                  imagePath: displayImage,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                           ],
-                        ),
+                          Expanded(
+                            child: InteractiveCardText(
+                              text: displayEffect,
+                              cardColor: effectiveColor,
+                              baseStyle: const TextStyle(
+                                fontSize: 12,
+                                height: 1.35,
+                                color: Color(0xFFE5E7E9),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -596,21 +482,15 @@ class CardPreviewHelper {
           Positioned(
             left: popupOffset.dx,
             top: popupOffset.dy,
-            child: AnimatedPopupBox(
-              onDismissed: () {
-                _currentEntry?.remove();
-                _currentEntry = null;
-              },
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildKeywordPopupPanel(keyword, popupWidth),
-                  if (relatedCard != null) ...[
-                    const SizedBox(width: popupGap),
-                    _buildRelatedCardPopupPanel(relatedCard, cardPopupWidth),
-                  ],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildKeywordPopupPanel(keyword, popupWidth),
+                if (relatedCard != null) ...[
+                  const SizedBox(width: popupGap),
+                  _buildRelatedCardPopupPanel(relatedCard, cardPopupWidth),
                 ],
-              ),
+              ],
             ),
           ),
         ],
@@ -714,16 +594,11 @@ class CardPreviewHelper {
                     ),
                   ),
                   if (!isUnplayable) ...[
-                    CardPreviewHelper.buildCostDisplay(
-                      card: card,
-                      isUpgraded: false,
-                      displayColor: color,
-                      iconSize: 13,
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(card.getCostLabel(false),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 4),
+                    Image.asset(color.iconPath, width: 13, height: 13),
                   ],
                 ],
               ),
@@ -790,15 +665,10 @@ class InteractiveCardText extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final normalizedText = text
-        .replaceAllMapped(
-          RegExp(r'\[\[\^(.+?)\^\]\]'),
-          (match) => '^[[${match.group(1)}]]^',
-        )
-        .replaceAllMapped(
-          RegExp(r'\[\^(.+?)\^\]'),
-          (match) => '^[${match.group(1)}]^',
-        )
-        .replaceAllMapped(RegExp(r'#(.+?)#'), (match) => match.group(1)!);
+      .replaceAllMapped(
+        RegExp(r'\[\[\^(.+?)\^\]\]'), (match) => '^[[${match.group(1)}]]^')
+      .replaceAllMapped(
+        RegExp(r'\[\^(.+?)\^\]'), (match) => '^[${match.group(1)}]^');
 
     final defaultStyle = TextStyle(
       fontSize: 14.0,
@@ -816,7 +686,7 @@ class InteractiveCardText extends StatelessWidget {
       final matches = linkRegex.allMatches(normalizedText);
       if (matches.isEmpty) return Text(text, style: effectiveStyle);
 
-      final spans = <InlineSpan>[];
+      List<InlineSpan> spans = [];
       int lastIndex = 0;
       for (final match in matches) {
         if (match.start > lastIndex) {
@@ -825,43 +695,23 @@ class InteractiveCardText extends StatelessWidget {
             style: effectiveStyle,
           ));
         }
+        final targetRaw = match.group(1)!;
         spans.add(
-            _buildCardSpan(context, match.group(1)!, false, effectiveStyle, isDark));
+            _buildCardSpan(context, targetRaw, false, effectiveStyle, isDark));
         lastIndex = match.end;
       }
       if (lastIndex < normalizedText.length) {
-        spans.add(TextSpan(
-          text: normalizedText.substring(lastIndex),
-          style: effectiveStyle,
-        ));
+        spans.add(
+        TextSpan(text: normalizedText.substring(lastIndex), style: effectiveStyle));
       }
-      final richText = Text.rich(
-        TextSpan(children: spans),
-        style: effectiveStyle,
-        strutStyle: StrutStyle.fromTextStyle(effectiveStyle),
-      );
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTapUp: (details) => _handleTapUp(
-          context,
-          details.globalPosition,
-          normalizedText,
-          effectiveStyle,
-        ),
-        onLongPressStart: (details) => _handleLongPress(
-          context,
-          details.globalPosition,
-          normalizedText,
-          effectiveStyle,
-        ),
-        child: richText,
-      );
+      return Text.rich(TextSpan(children: spans), style: effectiveStyle);
     }
 
+    // 1단계: ^강화구문^ 분리 파싱
     final blockRegex = RegExp(r'\^(.*?)\^');
     final blockMatches = blockRegex.allMatches(normalizedText);
 
-    final spans = <InlineSpan>[];
+    List<InlineSpan> spans = [];
     int lastIdx = 0;
 
     for (final bMatch in blockMatches) {
@@ -874,9 +724,10 @@ class InteractiveCardText extends StatelessWidget {
           isDark,
         ));
       }
+      final innerText = bMatch.group(1)!;
       spans.addAll(_parseInnerContent(
         context,
-        bMatch.group(1)!,
+        innerText,
         true,
         effectiveStyle,
         isDark,
@@ -894,253 +745,7 @@ class InteractiveCardText extends StatelessWidget {
       ));
     }
 
-    final richText = Text.rich(
-      TextSpan(children: spans),
-      style: effectiveStyle,
-      strutStyle: StrutStyle.fromTextStyle(effectiveStyle),
-    );
-
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTapUp: (details) => _handleTapUp(
-        context,
-        details.globalPosition,
-        normalizedText,
-        effectiveStyle,
-      ),
-      onLongPressStart: (details) => _handleLongPress(
-        context,
-        details.globalPosition,
-        normalizedText,
-        effectiveStyle,
-      ),
-      child: richText,
-    );
-  }
-
-  void _handleTapUp(
-    BuildContext context,
-    Offset globalPosition,
-    String normalizedText,
-    TextStyle effectiveStyle,
-  ) {
-    final renderObject = context.findRenderObject() as RenderBox?;
-    if (renderObject == null) return;
-
-    final localPosition = renderObject.globalToLocal(globalPosition);
-    final textPainter = TextPainter(
-      text: TextSpan(text: normalizedText, style: effectiveStyle),
-      textDirection: Directionality.of(context),
-    )..layout(maxWidth: renderObject.size.width);
-
-    final textOffset = textPainter.getPositionForOffset(localPosition).offset;
-    final match = _matchCardOrKeywordAtOffset(normalizedText, textOffset);
-    if (match == null) return;
-
-    if (match.type == 'card') {
-      String rawName = match.value.trim();
-      final isUp = rawName.endsWith('+');
-      if (isUp) rawName = rawName.substring(0, rawName.length - 1).trim();
-
-      CardData? card;
-      try {
-        card = CardStorage.cards.firstWhere((c) => c.name == rawName);
-      } catch (_) {}
-      if (card == null) return;
-
-      final resolvedCard = card;
-      if (resolvedCard == null) return;
-
-      CardPreviewHelper.hide();
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CardDetailScreen(
-            card: resolvedCard,
-            initialUpgraded: isUp,
-          ),
-        ),
-      );
-    } else if (match.type == 'keyword') {
-      KeywordData? keyword;
-      try {
-        keyword = CardStorage.keywords.firstWhere((k) => k.name.trim() == match.value.trim());
-      } catch (_) {}
-      if (keyword == null) return;
-
-      final targetRect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
-      final relatedCard = _findRelatedCardForKeyword(keyword);
-      CardPreviewHelper.showKeyword(
-        context: context,
-        keyword: keyword,
-        targetRect: targetRect,
-        relatedCard: relatedCard,
-      );
-    }
-  }
-
-  void _handleLongPress(
-    BuildContext context,
-    Offset globalPosition,
-    String normalizedText,
-    TextStyle effectiveStyle,
-  ) {
-    final renderObject = context.findRenderObject() as RenderBox?;
-    if (renderObject == null) return;
-
-    final localPosition = renderObject.globalToLocal(globalPosition);
-    final textPainter = TextPainter(
-      text: TextSpan(text: normalizedText, style: effectiveStyle),
-      textDirection: Directionality.of(context),
-    )..layout(maxWidth: renderObject.size.width);
-
-    final textOffset = textPainter.getPositionForOffset(localPosition).offset;
-    final match = _matchCardOrKeywordAtOffset(normalizedText, textOffset);
-    if (match == null) return;
-
-    final targetRect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
-
-    if (match.type == 'card') {
-      String rawName = match.value.trim();
-      final isUp = rawName.endsWith('+');
-      if (isUp) rawName = rawName.substring(0, rawName.length - 1).trim();
-
-      CardData? card;
-      try {
-        card = CardStorage.cards.firstWhere((c) => c.name == rawName);
-      } catch (_) {}
-      if (card == null) return;
-
-      final resolvedCard = card;
-      if (resolvedCard == null) return;
-
-      CardPreviewHelper.show(
-        context: context,
-        card: resolvedCard,
-        isUpgraded: isUp,
-        targetRect: targetRect,
-        variantColor: resolvedCard.isSharedStarter ? CardColor.ironclad : resolvedCard.color,
-      );
-      return;
-    }
-
-    KeywordData? keyword;
-    try {
-      keyword = CardStorage.keywords.firstWhere((k) => k.name.trim() == match.value.trim());
-    } catch (_) {}
-    if (keyword == null) return;
-
-    final relatedCard = _findRelatedCardForKeyword(keyword);
-    CardPreviewHelper.showKeyword(
-      context: context,
-      keyword: keyword,
-      targetRect: targetRect,
-      relatedCard: relatedCard,
-    );
-  }
-
-  CardData? _findRelatedCardForKeyword(KeywordData keyword) {
-    final normalizedKeyword = keyword.name.trim();
-    if (normalizedKeyword.isEmpty) return null;
-
-    // Special mapping for specific keywords
-    if (normalizedKeyword == '단조') {
-      try {
-        return CardStorage.cards.firstWhere(
-          (c) => c.id == 'c1aa536e-a7b9-40dd-8a94-de1c5cd2ce44',
-        );
-      } catch (_) {}
-    }
-
-    for (final card in CardStorage.cards) {
-      final searchable = (card.effect + ' ' + (card.upgradedEffect ?? '')).toLowerCase();
-      final keywordText = '[${normalizedKeyword}]';
-      if (searchable.contains(keywordText.toLowerCase())) {
-        return card;
-      }
-    }
-    return null;
-  }
-
-  ({String type, String value})? _matchCardOrKeywordAtOffset(
-    String text,
-    int offset,
-  ) {
-    final linkMatches = RegExp(r'\[\[(.*?)\]\]').allMatches(text);
-    for (final match in linkMatches) {
-      if (offset >= match.start && offset <= match.end) {
-        final value = match.group(1)?.trim() ?? '';
-        if (value.isNotEmpty) return (type: 'card', value: value);
-      }
-    }
-
-    final keywordMatches = RegExp(r'\[(.*?)\]').allMatches(text);
-    for (final match in keywordMatches) {
-      if (offset >= match.start && offset <= match.end) {
-        final value = match.group(1)?.trim() ?? '';
-        if (value.isNotEmpty) return (type: 'keyword', value: value);
-      }
-    }
-
-    return null;
-  }
-
-  InlineSpan _buildSymbolSpan(
-    String symbol,
-    TextStyle style,
-    bool isEnhancedBlock,
-    bool isDark,
-  ) {
-    final baseStyle = isEnhancedBlock
-        ? style.copyWith(
-            color: isDark ? const Color(0xFFAAFB50) : const Color(0xFF437A0B),
-            fontWeight: FontWeight.bold,
-          )
-        : style;
-
-    if (symbol == '@') {
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 1.5),
-          child: Image.asset(
-            cardColor.iconPath,
-            width: 14,
-            height: 14,
-            errorBuilder: (c, o, s) => Icon(
-              Icons.circle,
-              size: 12,
-              color: Color(cardColor.colorHex),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (symbol == '*') {
-      if (cardColor == CardColor.regent) {
-        return WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 1.5),
-            child: Image.asset(
-              'assets/icons/star.webp',
-              width: 14,
-              height: 14,
-              errorBuilder: (c, o, s) => const Icon(
-                Icons.star,
-                color: Colors.cyanAccent,
-                size: 14,
-              ),
-            ),
-          ),
-        );
-      }
-
-      return TextSpan(text: '*', style: baseStyle);
-    }
-
-    return TextSpan(text: symbol, style: baseStyle);
+    return Text.rich(TextSpan(children: spans), style: effectiveStyle);
   }
 
   List<InlineSpan> _parseInnerContent(
@@ -1150,7 +755,7 @@ class InteractiveCardText extends StatelessWidget {
     TextStyle effectiveStyle,
     bool isDark,
   ) {
-    final spans = <InlineSpan>[];
+    List<InlineSpan> spans = [];
     final innerRegex = RegExp(r'(\[\[(.*?)\]\]|\[(.*?)\]|(@|\*))');
     final matches = innerRegex.allMatches(content);
 
@@ -1183,7 +788,38 @@ class InteractiveCardText extends StatelessWidget {
         spans.add(_buildKeywordSpan(
             context, keyword, isEnhancedBlock, effectiveStyle, isDark));
       } else if (symbol != null) {
-        spans.add(_buildSymbolSpan(symbol, effectiveStyle, isEnhancedBlock, isDark));
+        Widget iconWidget;
+        if (symbol == '*') {
+          if (cardColor == CardColor.regent) {
+            iconWidget = Image.asset(
+              'assets/icons/star.webp',
+              width: 16,
+              height: 16,
+              errorBuilder: (c, o, s) =>
+                  const Icon(Icons.star, color: Colors.cyanAccent, size: 16),
+            );
+          } else {
+            iconWidget = Text('*', style: effectiveStyle);
+          }
+        } else if (symbol == '@') {
+          iconWidget = Image.asset(
+            cardColor.iconPath,
+            width: 16,
+            height: 16,
+            errorBuilder: (c, o, s) =>
+                Icon(Icons.circle, color: Color(cardColor.colorHex), size: 14),
+          );
+        } else {
+          iconWidget = const SizedBox.shrink();
+        }
+
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: iconWidget,
+          ),
+        ));
       }
 
       lastIndex = match.end;
@@ -1225,20 +861,63 @@ class InteractiveCardText extends StatelessWidget {
     final linkColor =
         isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309);
 
+    if (card == null) {
+      return TextSpan(
+        text: rawName,
+        style: baseStyle.copyWith(
+          color: Colors.grey,
+          decoration: TextDecoration.lineThrough,
+        ),
+      );
+    }
+
+    final targetCard = card;
+
     final linkStyle = baseStyle.copyWith(
-      color: card == null ? Colors.grey : linkColor,
+      color: linkColor,
       fontWeight: FontWeight.bold,
-      decoration: card == null ? TextDecoration.lineThrough : TextDecoration.underline,
-      decorationColor: card == null ? Colors.grey : linkColor,
+      decoration: TextDecoration.underline,
+      decorationColor: linkColor,
       backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
-      fontSize: baseStyle.fontSize,
-      height: baseStyle.height,
-      fontFamily: baseStyle.fontFamily,
     );
 
-    return TextSpan(
-      text: rawName,
-      style: linkStyle,
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: Builder(
+        builder: (linkContext) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            CardPreviewHelper.hide();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CardDetailScreen(
+                  card: targetCard,
+                  initialUpgraded: isUp,
+                ),
+              ),
+            );
+          },
+          onLongPress: () {
+            final box = linkContext.findRenderObject() as RenderBox?;
+            final rect = box == null
+                ? const Rect.fromLTWH(0, 0, 0, 0)
+                : box.localToGlobal(Offset.zero) & box.size;
+            CardPreviewHelper.show(
+              context: context,
+              card: targetCard,
+              isUpgraded: isUp,
+              targetRect: rect,
+              variantColor: targetCard.isSharedStarter
+                  ? CardColor.ironclad
+                  : targetCard.color,
+              showThumbnail: true,
+            );
+          },
+          child: Text(rawName, style: linkStyle),
+        ),
+      ),
     );
   }
 
@@ -1258,19 +937,57 @@ class InteractiveCardText extends StatelessWidget {
     final linkColor =
         isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309);
 
+    if (kw == null) {
+      return TextSpan(
+        text: kwName,
+        style: baseStyle.copyWith(
+          color: linkColor,
+          fontWeight: FontWeight.bold,
+          backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
+        ),
+      );
+    }
+
+    final targetKw = kw;
+
     final keywordStyle = baseStyle.copyWith(
-      color: kw == null ? linkColor : linkColor,
+      color: linkColor,
       fontWeight: FontWeight.bold,
       decoration: TextDecoration.none,
       backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
-      fontSize: baseStyle.fontSize,
-      height: baseStyle.height,
-      fontFamily: baseStyle.fontFamily,
     );
 
-    return TextSpan(
-      text: kwName,
-      style: keywordStyle,
+    void showKeywordPopup(BuildContext linkContext) {
+      final box = linkContext.findRenderObject() as RenderBox?;
+      final rect = box == null
+          ? const Rect.fromLTWH(0, 0, 0, 0)
+          : box.localToGlobal(Offset.zero) & box.size;
+      CardData? relatedCard;
+      if (kwName == '단조') {
+        final matchingCards = CardStorage.cards
+            .where((card) => card.name.trim() == '군주의 칼날')
+            .toList();
+        if (matchingCards.length == 1) relatedCard = matchingCards.single;
+      }
+      CardPreviewHelper.showKeyword(
+        context: context,
+        keyword: targetKw,
+        targetRect: rect,
+        relatedCard: relatedCard,
+      );
+    }
+
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: Builder(
+        builder: (linkContext) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => showKeywordPopup(linkContext),
+          onLongPress: () => showKeywordPopup(linkContext),
+          child: Text(kwName, style: keywordStyle),
+        ),
+      ),
     );
   }
 }
@@ -1441,17 +1158,17 @@ class SearchEffectText extends StatelessWidget {
       color: isDark ? const Color(0xFFB0BEC5) : const Color(0xFF475569),
       fontFamily: AppFontManager.fontFamily,
     );
-    final renderText = text.replaceAllMapped(
+    final normalizedText = text.replaceAllMapped(
       RegExp(r'#(.+?)#'),
       (match) => match.group(1)!,
     );
     final regex = RegExp(
         r'(\^\[\[(.*?)\]\]\^|\[\[(.*?)\^\]\]|\^\[(.*?)\]\^|\[\^(.*?)\^\]|\[\[(.*?)\]\]|\[(.*?)\]|\^(.*?)\^|(@|\*))');
-    final matches = regex.allMatches(renderText);
+    final matches = regex.allMatches(normalizedText);
 
     if (matches.isEmpty) {
       return Text(
-        renderText,
+        normalizedText,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: baseStyle,
@@ -1464,7 +1181,7 @@ class SearchEffectText extends StatelessWidget {
     for (final match in matches) {
       if (match.start > lastIndex) {
         spans.add(TextSpan(
-          text: renderText.substring(lastIndex, match.start),
+          text: normalizedText.substring(lastIndex, match.start),
           style: baseStyle,
         ));
       }
@@ -1501,59 +1218,49 @@ class SearchEffectText extends StatelessWidget {
           style: baseStyle.copyWith(
             color: const Color(0xFFAAFB50),
             fontWeight: FontWeight.bold,
-            fontSize: baseStyle.fontSize,
-            height: baseStyle.height,
-            fontFamily: baseStyle.fontFamily,
           ),
         ));
       } else if (symbol != null) {
-        if (symbol == '@') {
-          spans.add(WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1.5),
-              child: Image.asset(
-                cardColor.iconPath,
-                width: 14,
-                height: 14,
-                errorBuilder: (c, o, s) => Icon(
-                  Icons.circle,
-                  size: 12,
-                  color: Color(cardColor.colorHex),
-                ),
-              ),
-            ),
-          ));
-        } else if (symbol == '*') {
+        Widget iconWidget;
+        if (symbol == '*') {
           if (cardColor == CardColor.regent) {
-            spans.add(WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                child: Image.asset(
-                  'assets/icons/star.webp',
-                  width: 14,
-                  height: 14,
-                  errorBuilder: (c, o, s) => const Icon(
-                    Icons.star,
-                    color: Colors.cyanAccent,
-                    size: 14,
-                  ),
-                ),
-              ),
-            ));
+            iconWidget = Image.asset(
+              'assets/icons/star.webp',
+              width: 14,
+              height: 14,
+              errorBuilder: (c, o, s) =>
+                  const Icon(Icons.star, color: Colors.cyanAccent, size: 14),
+            );
           } else {
-            spans.add(TextSpan(text: '*', style: baseStyle));
+            iconWidget = Text('*', style: baseStyle);
           }
+        } else if (symbol == '@') {
+          iconWidget = Image.asset(
+            cardColor.iconPath,
+            width: 14,
+            height: 14,
+            errorBuilder: (c, o, s) =>
+                Icon(Icons.circle, color: Color(cardColor.colorHex), size: 12),
+          );
+        } else {
+          iconWidget = const SizedBox.shrink();
         }
+
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1.5),
+            child: iconWidget,
+          ),
+        ));
       }
 
       lastIndex = match.end;
     }
 
-    if (lastIndex < renderText.length) {
+    if (lastIndex < normalizedText.length) {
       spans.add(TextSpan(
-        text: renderText.substring(lastIndex),
+        text: normalizedText.substring(lastIndex),
         style: baseStyle,
       ));
     }
@@ -1561,7 +1268,6 @@ class SearchEffectText extends StatelessWidget {
     return RichText(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      strutStyle: StrutStyle.fromTextStyle(baseStyle),
       text: TextSpan(style: baseStyle, children: spans),
     );
   }
@@ -1587,7 +1293,7 @@ class UnifiedCardListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final displayImg = card.getImagePathForColor(effectiveColor, isUp);
-    final displayCostLabel = card.getCostDisplayText(isUp);
+    final displayCostLabel = card.getCostLabel(isUp);
     final displayStar = card.getStarCostLabel(isUp);
 
     final isSpecialCategory = effectiveColor == CardColor.status ||
@@ -1744,41 +1450,14 @@ class UnifiedCardListTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (isSpecialCategory)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!isUnplayable) ...[
-                      Text(
-                        '$tagLabel | ',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFB0BEC5),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      CardPreviewHelper.buildCostDisplay(
-                        card: card,
-                        isUpgraded: isUp,
-                        displayColor: effectiveColor,
-                        iconSize: 14,
-                        textStyle: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
-                        ),
-                      ),
-                    ] else ...[
-                      Text(
-                        tagLabel,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFB0BEC5),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ],
+              if (isSpecialCategory && isUnplayable)
+                Text(
+                  '$tagLabel | 사용불가',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFB0BEC5),
+                    fontWeight: FontWeight.bold,
+                  ),
                 )
               else
                 Row(
@@ -1793,17 +1472,43 @@ class UnifiedCardListTile extends StatelessWidget {
                       ),
                     ),
                     if (!isUnplayable) ...[
-                      CardPreviewHelper.buildCostDisplay(
-                        card: card,
-                        isUpgraded: isUp,
-                        displayColor: effectiveColor,
-                        iconSize: 14,
-                        textStyle: TextStyle(
+                      Image.asset(
+                        effectiveColor.iconPath,
+                        width: 14,
+                        height: 14,
+                        errorBuilder: (c, o, s) => const SizedBox.shrink(),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        displayCostLabel,
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF1E293B),
                         ),
                       ),
+                      if (effectiveColor == CardColor.regent &&
+                          displayStar != null) ...[
+                        const SizedBox(width: 4),
+                        Image.asset(
+                          'assets/icons/star.webp',
+                          width: 14,
+                          height: 14,
+                          errorBuilder: (c, o, s) => const Icon(Icons.star,
+                              size: 14, color: Colors.cyanAccent),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          displayStar,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color:
+                                isDark ? Colors.white : const Color(0xFF1E293B),
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
