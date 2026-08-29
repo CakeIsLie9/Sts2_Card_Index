@@ -366,15 +366,6 @@ class CardPreviewHelper {
     if (displayColor == CardColor.regent && starValue != null && starValue != -1) {
       children.addAll([
         const SizedBox(width: 4),
-        Text(
-          starValue.toString(),
-          style: textStyle ??
-              const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(width: 2),
         Image.asset(
           'assets/icons/star.webp',
           width: iconSize,
@@ -384,6 +375,15 @@ class CardPreviewHelper {
             size: iconSize,
             color: Colors.cyanAccent,
           ),
+        ),
+        const SizedBox(width: 2),
+        Text(
+          starValue.toString(),
+          style: textStyle ??
+              const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
         ),
       ]);
     }
@@ -417,6 +417,7 @@ class CardPreviewHelper {
             card.upgradedEffect!.isNotEmpty)
         ? card.upgradedEffect!
         : card.effect;
+    final displayCostLabel = card.getCostDisplayText(isUpgraded);
     final isUnplayable = ((isUpgraded && card.upgradedCost != null)
         ? card.upgradedCost!
         : card.cost) ==
@@ -435,7 +436,7 @@ class CardPreviewHelper {
         children: [
           Positioned.fill(
             child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.translucent,
               onTap: hide,
               child: Container(color: Colors.black54),
             ),
@@ -495,12 +496,9 @@ class CardPreviewHelper {
                               ),
                             ),
                             if (!isUnplayable) ...[
-                              buildCostDisplay(
-                                card: card,
-                                isUpgraded: isUpgraded,
-                                displayColor: effectiveColor,
-                                iconSize: 13,
-                                textStyle: TextStyle(
+                              Text(
+                                displayCostLabel,
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: isDark
@@ -588,7 +586,7 @@ class CardPreviewHelper {
         children: [
           Positioned.fill(
             child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.translucent,
               onTap: hide,
               child: Container(color: Colors.transparent),
             ),
@@ -811,42 +809,51 @@ class InteractiveCardText extends StatelessWidget {
         ? defaultStyle.merge(baseStyle)
         : defaultStyle;
 
+    final widgets = <Widget>[];
+
     if (onlyLinks) {
       final linkRegex = RegExp(r'\[\[(.*?)\]\]');
       final matches = linkRegex.allMatches(normalizedText);
       if (matches.isEmpty) return Text(text, style: effectiveStyle);
 
-      final spans = <InlineSpan>[];
       int lastIndex = 0;
       for (final match in matches) {
         if (match.start > lastIndex) {
-          spans.add(TextSpan(
-            text: normalizedText.substring(lastIndex, match.start),
+          widgets.add(Text(
+            normalizedText.substring(lastIndex, match.start),
             style: effectiveStyle,
           ));
         }
-        spans.add(
-            _buildCardSpan(context, match.group(1)!, false, effectiveStyle, isDark));
+        widgets.add(_buildCardWidget(
+          context,
+          match.group(1)!,
+          false,
+          effectiveStyle,
+          isDark,
+        ));
         lastIndex = match.end;
       }
       if (lastIndex < normalizedText.length) {
-        spans.add(TextSpan(
-          text: normalizedText.substring(lastIndex),
+        widgets.add(Text(
+          normalizedText.substring(lastIndex),
           style: effectiveStyle,
         ));
       }
-      return Text.rich(TextSpan(children: spans), style: effectiveStyle);
+
+      return Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 2,
+        children: widgets,
+      );
     }
 
     final blockRegex = RegExp(r'\^(.*?)\^');
     final blockMatches = blockRegex.allMatches(normalizedText);
-
-    final spans = <InlineSpan>[];
     int lastIdx = 0;
 
     for (final bMatch in blockMatches) {
       if (bMatch.start > lastIdx) {
-        spans.addAll(_parseInnerContent(
+        widgets.addAll(_parseInnerWidgets(
           context,
           normalizedText.substring(lastIdx, bMatch.start),
           false,
@@ -854,7 +861,7 @@ class InteractiveCardText extends StatelessWidget {
           isDark,
         ));
       }
-      spans.addAll(_parseInnerContent(
+      widgets.addAll(_parseInnerWidgets(
         context,
         bMatch.group(1)!,
         true,
@@ -865,7 +872,7 @@ class InteractiveCardText extends StatelessWidget {
     }
 
     if (lastIdx < normalizedText.length) {
-      spans.addAll(_parseInnerContent(
+      widgets.addAll(_parseInnerWidgets(
         context,
         normalizedText.substring(lastIdx),
         false,
@@ -874,17 +881,21 @@ class InteractiveCardText extends StatelessWidget {
       ));
     }
 
-    return Text.rich(TextSpan(children: spans), style: effectiveStyle);
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      runSpacing: 2,
+      children: widgets,
+    );
   }
 
-  List<InlineSpan> _parseInnerContent(
+  List<Widget> _parseInnerWidgets(
     BuildContext context,
     String content,
     bool isEnhancedBlock,
     TextStyle effectiveStyle,
     bool isDark,
   ) {
-    final spans = <InlineSpan>[];
+    final widgets = <Widget>[];
     final innerRegex = RegExp(r'(\[\[(.*?)\]\]|\[(.*?)\]|(@|\*))');
     final matches = innerRegex.allMatches(content);
 
@@ -893,8 +904,8 @@ class InteractiveCardText extends StatelessWidget {
     for (final match in matches) {
       if (match.start > lastIndex) {
         final plainText = content.substring(lastIndex, match.start);
-        spans.add(TextSpan(
-          text: plainText,
+        widgets.add(Text(
+          plainText,
           style: isEnhancedBlock
               ? effectiveStyle.copyWith(
                   color: isDark
@@ -911,11 +922,21 @@ class InteractiveCardText extends StatelessWidget {
       final symbol = match.group(4);
 
       if (cardLink != null) {
-        spans.add(_buildCardSpan(
-            context, cardLink, isEnhancedBlock, effectiveStyle, isDark));
+        widgets.add(_buildCardWidget(
+          context,
+          cardLink,
+          isEnhancedBlock,
+          effectiveStyle,
+          isDark,
+        ));
       } else if (keyword != null) {
-        spans.add(_buildKeywordSpan(
-            context, keyword, isEnhancedBlock, effectiveStyle, isDark));
+        widgets.add(_buildKeywordWidget(
+          context,
+          keyword,
+          isEnhancedBlock,
+          effectiveStyle,
+          isDark,
+        ));
       } else if (symbol != null) {
         Widget iconWidget;
         if (symbol == '*') {
@@ -942,13 +963,12 @@ class InteractiveCardText extends StatelessWidget {
           iconWidget = const SizedBox.shrink();
         }
 
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.0),
             child: iconWidget,
           ),
-        ));
+        );
       }
 
       lastIndex = match.end;
@@ -956,22 +976,21 @@ class InteractiveCardText extends StatelessWidget {
 
     if (lastIndex < content.length) {
       final plainText = content.substring(lastIndex);
-      spans.add(TextSpan(
-        text: plainText,
+      widgets.add(Text(
+        plainText,
         style: isEnhancedBlock
             ? effectiveStyle.copyWith(
-                color:
-                    isDark ? const Color(0xFFAAFB50) : const Color(0xFF437A0B),
+                color: isDark ? const Color(0xFFAAFB50) : const Color(0xFF437A0B),
                 fontWeight: FontWeight.bold,
               )
             : effectiveStyle,
       ));
     }
 
-    return spans;
+    return widgets;
   }
 
-  InlineSpan _buildCardSpan(
+  Widget _buildCardWidget(
     BuildContext context,
     String rawName,
     bool isEnh,
@@ -991,8 +1010,8 @@ class InteractiveCardText extends StatelessWidget {
         isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309);
 
     if (card == null) {
-      return TextSpan(
-        text: rawName,
+      return Text(
+        rawName,
         style: baseStyle.copyWith(
           color: Colors.grey,
           decoration: TextDecoration.lineThrough,
@@ -1000,7 +1019,7 @@ class InteractiveCardText extends StatelessWidget {
       );
     }
 
-    final linkStyle = baseStyle.copyWith(
+    final labelStyle = baseStyle.copyWith(
       color: linkColor,
       fontWeight: FontWeight.bold,
       decoration: TextDecoration.underline,
@@ -1011,50 +1030,46 @@ class InteractiveCardText extends StatelessWidget {
       fontFamily: baseStyle.fontFamily,
     );
 
-    return WidgetSpan(
-      alignment: PlaceholderAlignment.baseline,
-      baseline: TextBaseline.alphabetic,
-      child: Builder(
-        builder: (linkContext) => GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () {
-            CardPreviewHelper.hide();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CardDetailScreen(
-                  card: card!,
-                  initialUpgraded: isUp,
-                ),
+    return Builder(
+      builder: (linkContext) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          CardPreviewHelper.hide();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CardDetailScreen(
+                card: card!,
+                initialUpgraded: isUp,
               ),
-            );
-          },
-          onLongPress: () {
-            final box = linkContext.findRenderObject() as RenderBox?;
-            final rect = box == null
-                ? const Rect.fromLTWH(0, 0, 0, 0)
-                : box.localToGlobal(Offset.zero) & box.size;
-            CardPreviewHelper.show(
-              context: context,
-              card: card!,
-              isUpgraded: isUp,
-              targetRect: rect,
-              variantColor: card!.isSharedStarter
-                  ? CardColor.ironclad
-                  : card!.color,
-              showThumbnail: true,
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.0),
-            child: Text(rawName, style: linkStyle),
-          ),
+            ),
+          );
+        },
+        onLongPress: () {
+          final box = linkContext.findRenderObject() as RenderBox?;
+          final rect = box == null
+              ? const Rect.fromLTWH(0, 0, 0, 0)
+              : box.localToGlobal(Offset.zero) & box.size;
+          CardPreviewHelper.show(
+            context: context,
+            card: card!,
+            isUpgraded: isUp,
+            targetRect: rect,
+            variantColor: card!.isSharedStarter
+                ? CardColor.ironclad
+                : card!.color,
+            showThumbnail: true,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2.0),
+          child: Text(rawName, style: labelStyle),
         ),
       ),
     );
   }
 
-  InlineSpan _buildKeywordSpan(
+  Widget _buildKeywordWidget(
     BuildContext context,
     String kwName,
     bool isEnh,
@@ -1062,13 +1077,12 @@ class InteractiveCardText extends StatelessWidget {
     bool isDark,
   ) {
     final kw = CardStorage.resolveKeyword(kwName);
-
     final linkColor =
         isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309);
 
     if (kw == null) {
-      return TextSpan(
-        text: kwName,
+      return Text(
+        kwName,
         style: baseStyle.copyWith(
           color: linkColor,
           fontWeight: FontWeight.bold,
@@ -1107,18 +1121,14 @@ class InteractiveCardText extends StatelessWidget {
       );
     }
 
-    return WidgetSpan(
-      alignment: PlaceholderAlignment.baseline,
-      baseline: TextBaseline.alphabetic,
-      child: Builder(
-        builder: (linkContext) => GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () => showKeywordPopup(linkContext),
-          onLongPress: () => showKeywordPopup(linkContext),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.0),
-            child: Text(kwName, style: keywordStyle),
-          ),
+    return Builder(
+      builder: (linkContext) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => showKeywordPopup(linkContext),
+        onLongPress: () => showKeywordPopup(linkContext),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2.0),
+          child: Text(kwName, style: keywordStyle),
         ),
       ),
     );

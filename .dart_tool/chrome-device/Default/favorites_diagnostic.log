@@ -151,3 +151,31 @@
 2026-08-29 13:42:44.038: [INFO] BookmarksSnapshot Startup total=65 bar=27 other=20 mobile=0 showBar=0 showBarNTP=1
 2026-08-29 13:42:54.109: [INFO] Sync initialization duration: 1079ms
 2026-08-29 13:47:00.333: [INFO] BookmarksSnapshot Shutdown total=65 bar=27 other=20 mobile=0 showBar=0 showBarNTP=1
+2026-08-29 14:15:19.871: [INFO] CurrentProfilePath: C:\Users\caret\AppData\Local\Temp\flutter_tools.ed5bac32\flutter_tools_chrome_device.a766549d\Default
+2026-08-29 14:15:19.871: [INFO] Profiles total count: 1
+2026-08-29 14:15:19.871: [INFO] Profile: name=프로필 1 path=C:\Users\caret\AppData\Local\Temp\flutter_tools.ed5bac32\flutter_tools_chrome_device.a766549d\Default lastActive=null
+2026-08-29 14:15:19.871: [INFO] LastUsedProfileDir: C:\Users\caret\AppData\Local\Temp\flutter_tools.ed5bac32\flutter_tools_chrome_device.a766549d\Default
+2026-08-29 14:15:19.871: [INFO] VisibilityChanged: 0
+2026-08-29 14:15:20.258: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 14:15:20.259: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 14:15:20.259: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 14:15:20.259: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 14:15:20.260: [INFO] OnDoneLoading sync enabled: 0
+2026-08-29 14:15:20.260: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-29 14:15:20.260: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-29 14:15:20.260: [INFO] BookmarksSnapshot Startup total=69 bar=31 other=20 mobile=0 showBar=0 showBarNTP=1
+2026-08-29 14:15:23.762: [INFO] Primary account changed.
+2026-08-29 14:15:23.763: [INFO] OnPrimaryAccountChanged PrimaryAccountChangeEvent::Type::kSet
+2026-08-29 14:15:29.182: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.183: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.183: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.183: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.183: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.184: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.184: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.184: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.184: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.184: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:29.184: [INFO] BookmarkNodeMoved
+2026-08-29 14:15:38.113: [INFO] Sync initialization duration: 17891ms
+2026-08-29 14:16:01.176: [INFO] BookmarksSnapshot Shutdown total=69 bar=31 other=20 mobile=0 showBar=0 showBarNTP=1
