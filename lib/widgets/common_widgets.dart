@@ -366,6 +366,15 @@ class CardPreviewHelper {
     if (displayColor == CardColor.regent && starValue != null && starValue != -1) {
       children.addAll([
         const SizedBox(width: 4),
+        Text(
+          starValue.toString(),
+          style: textStyle ??
+              const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(width: 2),
         Image.asset(
           'assets/icons/star.webp',
           width: iconSize,
@@ -375,15 +384,6 @@ class CardPreviewHelper {
             size: iconSize,
             color: Colors.cyanAccent,
           ),
-        ),
-        const SizedBox(width: 2),
-        Text(
-          starValue.toString(),
-          style: textStyle ??
-              const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
         ),
       ]);
     }
@@ -874,7 +874,69 @@ class InteractiveCardText extends StatelessWidget {
       ));
     }
 
-    return Text.rich(TextSpan(children: spans), style: effectiveStyle);
+    return Text.rich(
+      TextSpan(children: spans),
+      style: effectiveStyle,
+      strutStyle: StrutStyle.fromTextStyle(effectiveStyle),
+    );
+  }
+
+  InlineSpan _buildSymbolSpan(
+    String symbol,
+    TextStyle style,
+    bool isEnhancedBlock,
+    bool isDark,
+  ) {
+    final baseStyle = isEnhancedBlock
+        ? style.copyWith(
+            color: isDark ? const Color(0xFFAAFB50) : const Color(0xFF437A0B),
+            fontWeight: FontWeight.bold,
+          )
+        : style;
+
+    if (symbol == '@') {
+      return WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1.5),
+          child: Image.asset(
+            cardColor.iconPath,
+            width: 14,
+            height: 14,
+            errorBuilder: (c, o, s) => Icon(
+              Icons.circle,
+              size: 12,
+              color: Color(cardColor.colorHex),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (symbol == '*') {
+      if (cardColor == CardColor.regent) {
+        return WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1.5),
+            child: Image.asset(
+              'assets/icons/star.webp',
+              width: 14,
+              height: 14,
+              errorBuilder: (c, o, s) => const Icon(
+                Icons.star,
+                color: Colors.cyanAccent,
+                size: 14,
+              ),
+            ),
+          ),
+        );
+      }
+
+      return TextSpan(text: '*', style: baseStyle);
+    }
+
+    return TextSpan(text: symbol, style: baseStyle);
   }
 
   List<InlineSpan> _parseInnerContent(
@@ -917,25 +979,7 @@ class InteractiveCardText extends StatelessWidget {
         spans.add(_buildKeywordSpan(
             context, keyword, isEnhancedBlock, effectiveStyle, isDark));
       } else if (symbol != null) {
-        final symbolText = symbol == '*' || symbol == '@' ? symbol : '';
-        if (symbolText.isNotEmpty) {
-          spans.add(TextSpan(
-            text: symbolText,
-            style: (isEnhancedBlock
-                    ? effectiveStyle.copyWith(
-                        color: isDark
-                            ? const Color(0xFFAAFB50)
-                            : const Color(0xFF437A0B),
-                        fontWeight: FontWeight.bold,
-                      )
-                    : effectiveStyle)
-                .copyWith(
-                  fontSize: effectiveStyle.fontSize,
-                  height: effectiveStyle.height,
-                  fontFamily: effectiveStyle.fontFamily,
-                ),
-          ));
-        }
+        spans.add(_buildSymbolSpan(symbol, effectiveStyle, isEnhancedBlock, isDark));
       }
 
       lastIndex = match.end;
@@ -1142,16 +1186,44 @@ class SearchEffectText extends StatelessWidget {
           ),
         ));
       } else if (symbol != null) {
-        final symbolText = symbol == '*' || symbol == '@' ? symbol : '';
-        if (symbolText.isNotEmpty) {
-          spans.add(TextSpan(
-            text: symbolText,
-            style: baseStyle.copyWith(
-              fontSize: baseStyle.fontSize,
-              height: baseStyle.height,
-              fontFamily: baseStyle.fontFamily,
+        if (symbol == '@') {
+          spans.add(WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              child: Image.asset(
+                cardColor.iconPath,
+                width: 14,
+                height: 14,
+                errorBuilder: (c, o, s) => Icon(
+                  Icons.circle,
+                  size: 12,
+                  color: Color(cardColor.colorHex),
+                ),
+              ),
             ),
           ));
+        } else if (symbol == '*') {
+          if (cardColor == CardColor.regent) {
+            spans.add(WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                child: Image.asset(
+                  'assets/icons/star.webp',
+                  width: 14,
+                  height: 14,
+                  errorBuilder: (c, o, s) => const Icon(
+                    Icons.star,
+                    color: Colors.cyanAccent,
+                    size: 14,
+                  ),
+                ),
+              ),
+            ));
+          } else {
+            spans.add(TextSpan(text: '*', style: baseStyle));
+          }
         }
       }
 
@@ -1168,6 +1240,7 @@ class SearchEffectText extends StatelessWidget {
     return RichText(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
+      strutStyle: StrutStyle.fromTextStyle(baseStyle),
       text: TextSpan(style: baseStyle, children: spans),
     );
   }

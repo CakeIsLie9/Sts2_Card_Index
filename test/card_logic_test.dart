@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:card_index/main.dart';
 
@@ -61,5 +62,42 @@ void main() {
 
     expect(KoreanSearchHelper.matches(text, '영구히'), isTrue);
     expect(KoreanSearchHelper.searchableEffect(text).contains('영구히'), isTrue);
+  });
+
+  testWidgets('regent star cost keeps the number before the star icon', (tester) async {
+    final card = CardData(
+      id: 'card-regent-star',
+      name: '별 비용 카드',
+      effect: '테스트',
+      color: CardColor.regent,
+      type: CardType.skill,
+      cost: CardCost.cost1,
+      starCost: 3,
+      imagePath: '',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CardPreviewHelper.buildCostDisplay(
+            card: card,
+            isUpgraded: false,
+            displayColor: CardColor.regent,
+            iconSize: 14,
+            textStyle: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ),
+    );
+
+    final row = tester.widget<Row>(find.byType(Row));
+    final children = row.children;
+
+    expect(children[0], isA<Text>());
+    expect((children[0] as Text).data, '1');
+    expect((children[2] as Image).image, isNotNull);
+    expect(children[4], isA<Text>());
+    expect((children[4] as Text).data, '3');
+    expect(children[6], isA<Image>());
   });
 }
