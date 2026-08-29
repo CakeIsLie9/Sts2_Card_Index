@@ -1289,6 +1289,150 @@ class SearchEffectText extends StatelessWidget {
     required this.cardColor,
   });
 
+  InlineSpan _buildCardSpan(
+    BuildContext context,
+    String rawName,
+    bool isEnhanced,
+    TextStyle baseStyle,
+  ) {
+    String cleanName = rawName.trim();
+    final isUp = cleanName.endsWith('+');
+    if (isUp) cleanName = cleanName.substring(0, cleanName.length - 1).trim();
+
+    CardData? card;
+    try {
+      card = CardStorage.cards.firstWhere((c) => c.name == cleanName);
+    } catch (_) {}
+
+    final linkColor = const Color(0xFFFFD54F);
+    final linkStyle = baseStyle.copyWith(
+      color: card == null ? Colors.grey : linkColor,
+      fontWeight: FontWeight.bold,
+      decoration: card == null ? TextDecoration.lineThrough : TextDecoration.underline,
+      decorationColor: card == null ? Colors.grey : linkColor,
+      backgroundColor: isEnhanced ? const Color(0x55AAFB50) : null,
+    );
+
+    if (card == null) {
+      return TextSpan(text: rawName, style: linkStyle);
+    }
+
+    final resolvedCard = card;
+
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: Builder(
+        builder: (linkContext) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            CardPreviewHelper.hide();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CardDetailScreen(
+                  card: resolvedCard,
+                  initialUpgraded: isUp,
+                ),
+              ),
+            );
+          },
+          onLongPress: () {
+            final box = linkContext.findRenderObject() as RenderBox?;
+            final rect = box == null
+                ? const Rect.fromLTWH(0, 0, 0, 0)
+                : box.localToGlobal(Offset.zero) & box.size;
+            CardPreviewHelper.show(
+              context: context,
+              card: resolvedCard,
+              isUpgraded: isUp,
+              targetRect: rect,
+              variantColor: resolvedCard.isSharedStarter
+                  ? CardColor.ironclad
+                  : resolvedCard.color,
+              showThumbnail: true,
+            );
+          },
+          child: Text(rawName, style: linkStyle),
+        ),
+      ),
+    );
+  }
+
+  InlineSpan _buildKeywordSpan(
+    BuildContext context,
+    String kwName,
+    bool isEnhanced,
+    TextStyle baseStyle,
+  ) {
+    KeywordData? kw;
+    try {
+      kw = CardStorage.keywords
+          .firstWhere((k) => k.name.trim() == kwName.trim());
+    } catch (_) {}
+
+    final keywordStyle = baseStyle.copyWith(
+      color: const Color(0xFFFFD54F),
+      fontWeight: FontWeight.bold,
+      backgroundColor: isEnhanced ? const Color(0x55AAFB50) : null,
+    );
+
+    if (kw == null) {
+      return TextSpan(text: kwName, style: keywordStyle);
+    }
+
+    final resolvedKw = kw;
+
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: Builder(
+        builder: (linkContext) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            final box = linkContext.findRenderObject() as RenderBox?;
+            final rect = box == null
+                ? const Rect.fromLTWH(0, 0, 0, 0)
+                : box.localToGlobal(Offset.zero) & box.size;
+            CardData? relatedCard;
+            if (kwName == '단조') {
+              final matchingCards = CardStorage.cards
+                  .where((card) => card.name.trim() == '군주의 칼날')
+                  .toList();
+              if (matchingCards.length == 1) relatedCard = matchingCards.single;
+            }
+            CardPreviewHelper.showKeyword(
+              context: context,
+              keyword: resolvedKw,
+              targetRect: rect,
+              relatedCard: relatedCard,
+            );
+          },
+          onLongPress: () {
+            final box = linkContext.findRenderObject() as RenderBox?;
+            final rect = box == null
+                ? const Rect.fromLTWH(0, 0, 0, 0)
+                : box.localToGlobal(Offset.zero) & box.size;
+            CardData? relatedCard;
+            if (kwName == '단조') {
+              final matchingCards = CardStorage.cards
+                  .where((card) => card.name.trim() == '군주의 칼날')
+                  .toList();
+              if (matchingCards.length == 1) relatedCard = matchingCards.single;
+            }
+            CardPreviewHelper.showKeyword(
+              context: context,
+              keyword: resolvedKw,
+              targetRect: rect,
+              relatedCard: relatedCard,
+            );
+          },
+          child: Text(kwName, style: keywordStyle),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1339,29 +1483,18 @@ class SearchEffectText extends StatelessWidget {
           enhKw1 != null ||
           enhKw2 != null) {
         final content = enhLink1 ?? enhLink2 ?? enhKw1 ?? enhKw2!;
-        spans.add(TextSpan(
-          text: content,
-          style: baseStyle.copyWith(
-            color: const Color(0xFFFFD54F),
-            backgroundColor: const Color(0x55AAFB50),
-            fontWeight: FontWeight.bold,
-            fontSize: baseStyle.fontSize,
-            height: baseStyle.height,
-            fontFamily: baseStyle.fontFamily,
-          ),
-        ));
+        if (enhLink1 != null || enhLink2 != null) {
+          spans.add(_buildCardSpan(context, content, true, baseStyle));
+        } else {
+          spans.add(_buildKeywordSpan(context, content, true, baseStyle));
+        }
       } else if (regLink != null || regKw != null) {
         final content = regLink ?? regKw!;
-        spans.add(TextSpan(
-          text: content,
-          style: baseStyle.copyWith(
-            color: const Color(0xFFFFD54F),
-            fontWeight: FontWeight.bold,
-            fontSize: baseStyle.fontSize,
-            height: baseStyle.height,
-            fontFamily: baseStyle.fontFamily,
-          ),
-        ));
+        if (regLink != null) {
+          spans.add(_buildCardSpan(context, content, false, baseStyle));
+        } else {
+          spans.add(_buildKeywordSpan(context, content, false, baseStyle));
+        }
       } else if (highlightText != null) {
         spans.add(TextSpan(
           text: highlightText,
