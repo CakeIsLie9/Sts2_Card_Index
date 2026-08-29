@@ -94,6 +94,15 @@ class CardStorage {
     }
   }
 
+  static bool cardNameExists(String name, {String? excludeId}) {
+    final normalized = name.trim();
+    if (normalized.isEmpty) return false;
+
+    return cards.any((card) =>
+        card.name.trim() == normalized &&
+        (excludeId == null || card.id != excludeId));
+  }
+
   static Future<void> saveCards() async {
     final prefs = await SharedPreferences.getInstance();
     final String dataString = jsonEncode(cards.map((e) => e.toJson()).toList());
@@ -111,24 +120,36 @@ class CardStorage {
     if (keyword.trim().isEmpty) return 0;
     final cleanKw = keyword.trim();
     int count = 0;
-
     final pattern = RegExp('(?<!\\[)${RegExp.escape(cleanKw)}(?!\\])');
 
     for (var card in cards) {
       bool modified = false;
-      final newEff = card.effect.replaceAllMapped(pattern, (m) => '[$cleanKw]');
-      if (newEff != card.effect) {
-        card.effect = newEff;
-        modified = true;
-      }
 
-      if (card.upgradedEffect != null && card.upgradedEffect!.isNotEmpty) {
-        final newUpEff =
-            card.upgradedEffect!.replaceAllMapped(pattern, (m) => '[$cleanKw]');
-        if (newUpEff != card.upgradedEffect) {
-          card.upgradedEffect = newUpEff;
+      void applyToField(String? fieldText, void Function(String) assign) {
+        if (fieldText == null || fieldText.isEmpty) return;
+
+        final placeholders = <String, String>{};
+        final masked = fieldText.replaceAllMapped(RegExp(r'#(.+?)#'), (match) {
+          final token = '__HASH_${placeholders.length}__';
+          placeholders[token] = match.group(1)!;
+          return token;
+        });
+
+        final rewritten = masked.replaceAllMapped(pattern, (m) => '[$cleanKw]');
+        var merged = rewritten;
+        for (final entry in placeholders.entries) {
+          merged = merged.replaceAll(entry.key, '#${entry.value}#');
+        }
+
+        if (merged != fieldText) {
+          assign(merged);
           modified = true;
         }
+      }
+
+      applyToField(card.effect, (value) => card.effect = value);
+      if (card.upgradedEffect != null && card.upgradedEffect!.isNotEmpty) {
+        applyToField(card.upgradedEffect, (value) => card.upgradedEffect = value);
       }
 
       if (modified) count++;

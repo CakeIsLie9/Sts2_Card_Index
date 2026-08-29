@@ -41,7 +41,11 @@ class KoreanSearchHelper {
 
   /// [카드명/키워드명 전용] 일반 텍스트 매칭 + 초성 매칭 모두 허용
   static bool matches(String target, String query) {
-    final cleanTarget = target.toLowerCase().replaceAll(' ', '');
+    final cleanTarget = target
+        .toLowerCase()
+        .replaceAll(' ', '')
+        .replaceAllMapped(RegExp(r'#(.+?)#'), (match) => match.group(1)!)
+        .replaceAll('#', '');
     final cleanQuery = query.toLowerCase().replaceAll(' ', '');
     if (cleanQuery.isEmpty) return true;
 
@@ -81,8 +85,10 @@ class KoreanSearchHelper {
       .replaceAllMapped(RegExp(r'\[\[(.*?)\]\]'), (match) => match.group(1)!)
       .replaceAllMapped(RegExp(r'\[(.*?)\]'), (match) => match.group(1)!)
       .replaceAllMapped(RegExp(r'\^(.*?)\^'), (match) => match.group(1)!)
-        .replaceAll('@', ' 에너지 ')
-        .replaceAll('*', ' 별 ');
+      .replaceAllMapped(RegExp(r'#(.+?)#'), (match) => match.group(1)!)
+      .replaceAll('#', '')
+      .replaceAll('@', ' 에너지 ')
+      .replaceAll('*', ' 별 ');
     return searchable.toLowerCase();
   }
 }
@@ -195,7 +201,19 @@ class AppToast {
 
 class AnimatedPopupBox extends StatefulWidget {
   final Widget child;
-  const AnimatedPopupBox({super.key, required this.child});
+  final VoidCallback? onDismissed;
+
+  static _AnimatedPopupBoxState? _activeState;
+
+  const AnimatedPopupBox({
+    super.key,
+    required this.child,
+    this.onDismissed,
+  });
+
+  static void dismissCurrent() {
+    _activeState?.dismiss();
+  }
 
   @override
   State<AnimatedPopupBox> createState() => _AnimatedPopupBoxState();
@@ -210,6 +228,7 @@ class _AnimatedPopupBoxState extends State<AnimatedPopupBox>
   @override
   void initState() {
     super.initState();
+    AnimatedPopupBox._activeState = this;
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150),
@@ -223,8 +242,22 @@ class _AnimatedPopupBoxState extends State<AnimatedPopupBox>
     _controller.forward();
   }
 
+  void dismiss() {
+    if (_controller.isAnimating) {
+      _controller.stop();
+    }
+    _controller.reverse().then((_) {
+      if (mounted) {
+        widget.onDismissed?.call();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    if (AnimatedPopupBox._activeState == this) {
+      AnimatedPopupBox._activeState = null;
+    }
     _controller.dispose();
     super.dispose();
   }
@@ -277,8 +310,88 @@ class CardPreviewHelper {
   }
 
   static void hide() {
-    _currentEntry?.remove();
-    _currentEntry = null;
+    if (_currentEntry != null) {
+      AnimatedPopupBox.dismissCurrent();
+      return;
+    }
+  }
+
+  static Widget buildCostDisplay({
+    required CardData card,
+    required bool isUpgraded,
+    required CardColor displayColor,
+    double iconSize = 14,
+    TextStyle? textStyle,
+  }) {
+    final cost = (isUpgraded && card.upgradedCost != null)
+        ? card.upgradedCost!
+        : card.cost;
+    final starValue = (isUpgraded && card.upgradedStarCost != null)
+        ? card.upgradedStarCost!
+        : card.starCost;
+
+    if (cost == CardCost.none) {
+      return const SizedBox.shrink();
+    }
+
+    final baseLabel = cost == CardCost.cost4Plus
+        ? ((isUpgraded && card.upgradedCost != null)
+                ? (card.upgradedCustomCost ?? card.customCost ?? 4)
+                : (card.customCost ?? 4))
+            .toString()
+        : cost.label;
+
+    final children = <Widget>[
+      Text(
+        baseLabel,
+        style: textStyle ??
+            const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+      ),
+      const SizedBox(width: 2),
+      Image.asset(
+        displayColor.iconPath,
+        width: iconSize,
+        height: iconSize,
+        errorBuilder: (c, o, s) => Icon(
+          Icons.circle,
+          size: iconSize * 0.9,
+          color: Color(displayColor.colorHex),
+        ),
+      ),
+    ];
+
+    if (displayColor == CardColor.regent && starValue != null && starValue != -1) {
+      children.addAll([
+        const SizedBox(width: 4),
+        Image.asset(
+          'assets/icons/star.webp',
+          width: iconSize,
+          height: iconSize,
+          errorBuilder: (c, o, s) => Icon(
+            Icons.star,
+            size: iconSize,
+            color: Colors.cyanAccent,
+          ),
+        ),
+        const SizedBox(width: 2),
+        Text(
+          starValue.toString(),
+          style: textStyle ??
+              const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ]);
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: children,
+    );
   }
 
   /// 카드 롱탭 미리보기 팝업 (기존 파라미터 100% 일치 + AppCardImage 적용)
@@ -304,7 +417,7 @@ class CardPreviewHelper {
             card.upgradedEffect!.isNotEmpty)
         ? card.upgradedEffect!
         : card.effect;
-    final displayCostLabel = card.getCostLabel(isUpgraded);
+    final displayCostLabel = card.getCostDisplayText(isUpgraded);
     final isUnplayable = ((isUpgraded && card.upgradedCost != null)
         ? card.upgradedCost!
         : card.cost) ==
@@ -331,108 +444,107 @@ class CardPreviewHelper {
           Positioned(
             left: popupOffset.dx,
             top: popupOffset.dy,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: popupWidth,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B2529),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFF557887),
-                    width: 1.5,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black45,
-                      blurRadius: 16,
-                      offset: Offset(0, 8),
-                    )
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF202020),
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(7)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              card.name + (isUpgraded ? '+' : ''),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1E293B),
-                                fontFamily: AppFontManager.fontFamily,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (!isUnplayable) ...[
-                            Text(
-                              displayCostLabel,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Image.asset(
-                              effectiveColor.iconPath,
-                              width: 13,
-                              height: 13,
-                              errorBuilder: (c, o, s) => const SizedBox.shrink(),
-                            ),
-                          ],
-                        ],
-                      ),
+            child: AnimatedPopupBox(
+              onDismissed: () {
+                _currentEntry?.remove();
+                _currentEntry = null;
+              },
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: popupWidth,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1B2529),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF557887),
+                      width: 1.5,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (showThumbnail && displayImage.isNotEmpty) ...[
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(3),
-                              child: SizedBox(
-                                width: 54,
-                                height: 72,
-                                child: AppCardImage(
-                                  imagePath: displayImage,
-                                  fit: BoxFit.cover,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black45,
+                        blurRadius: 16,
+                        offset: Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF202020),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(7)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                card.name + (isUpgraded ? '+' : ''),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B),
+                                  fontFamily: AppFontManager.fontFamily,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (!isUnplayable) ...[
+                              Text(
+                                displayCostLabel,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (showThumbnail && displayImage.isNotEmpty) ...[
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: SizedBox(
+                                  width: 54,
+                                  height: 72,
+                                  child: AppCardImage(
+                                    imagePath: displayImage,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            Expanded(
+                              child: InteractiveCardText(
+                                text: displayEffect,
+                                cardColor: effectiveColor,
+                                baseStyle: const TextStyle(
+                                  fontSize: 12,
+                                  height: 1.35,
+                                  color: Color(0xFFE5E7E9),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
                           ],
-                          Expanded(
-                            child: InteractiveCardText(
-                              text: displayEffect,
-                              cardColor: effectiveColor,
-                              baseStyle: const TextStyle(
-                                fontSize: 12,
-                                height: 1.35,
-                                color: Color(0xFFE5E7E9),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -482,15 +594,21 @@ class CardPreviewHelper {
           Positioned(
             left: popupOffset.dx,
             top: popupOffset.dy,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildKeywordPopupPanel(keyword, popupWidth),
-                if (relatedCard != null) ...[
-                  const SizedBox(width: popupGap),
-                  _buildRelatedCardPopupPanel(relatedCard, cardPopupWidth),
+            child: AnimatedPopupBox(
+              onDismissed: () {
+                _currentEntry?.remove();
+                _currentEntry = null;
+              },
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildKeywordPopupPanel(keyword, popupWidth),
+                  if (relatedCard != null) ...[
+                    const SizedBox(width: popupGap),
+                    _buildRelatedCardPopupPanel(relatedCard, cardPopupWidth),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -594,11 +712,16 @@ class CardPreviewHelper {
                     ),
                   ),
                   if (!isUnplayable) ...[
-                    Text(card.getCostLabel(false),
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 4),
-                    Image.asset(color.iconPath, width: 13, height: 13),
+                    CardPreviewHelper.buildCostDisplay(
+                      card: card,
+                      isUpgraded: false,
+                      displayColor: color,
+                      iconSize: 13,
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -665,10 +788,15 @@ class InteractiveCardText extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final normalizedText = text
-      .replaceAllMapped(
-        RegExp(r'\[\[\^(.+?)\^\]\]'), (match) => '^[[${match.group(1)}]]^')
-      .replaceAllMapped(
-        RegExp(r'\[\^(.+?)\^\]'), (match) => '^[${match.group(1)}]^');
+        .replaceAllMapped(
+          RegExp(r'\[\[\^(.+?)\^\]\]'),
+          (match) => '^[[${match.group(1)}]]^',
+        )
+        .replaceAllMapped(
+          RegExp(r'\[\^(.+?)\^\]'),
+          (match) => '^[${match.group(1)}]^',
+        )
+        .replaceAllMapped(RegExp(r'#(.+?)#'), (match) => match.group(1)!);
 
     final defaultStyle = TextStyle(
       fontSize: 14.0,
@@ -686,7 +814,7 @@ class InteractiveCardText extends StatelessWidget {
       final matches = linkRegex.allMatches(normalizedText);
       if (matches.isEmpty) return Text(text, style: effectiveStyle);
 
-      List<InlineSpan> spans = [];
+      final spans = <InlineSpan>[];
       int lastIndex = 0;
       for (final match in matches) {
         if (match.start > lastIndex) {
@@ -695,23 +823,23 @@ class InteractiveCardText extends StatelessWidget {
             style: effectiveStyle,
           ));
         }
-        final targetRaw = match.group(1)!;
         spans.add(
-            _buildCardSpan(context, targetRaw, false, effectiveStyle, isDark));
+            _buildCardSpan(context, match.group(1)!, false, effectiveStyle, isDark));
         lastIndex = match.end;
       }
       if (lastIndex < normalizedText.length) {
-        spans.add(
-        TextSpan(text: normalizedText.substring(lastIndex), style: effectiveStyle));
+        spans.add(TextSpan(
+          text: normalizedText.substring(lastIndex),
+          style: effectiveStyle,
+        ));
       }
       return Text.rich(TextSpan(children: spans), style: effectiveStyle);
     }
 
-    // 1단계: ^강화구문^ 분리 파싱
     final blockRegex = RegExp(r'\^(.*?)\^');
     final blockMatches = blockRegex.allMatches(normalizedText);
 
-    List<InlineSpan> spans = [];
+    final spans = <InlineSpan>[];
     int lastIdx = 0;
 
     for (final bMatch in blockMatches) {
@@ -724,10 +852,9 @@ class InteractiveCardText extends StatelessWidget {
           isDark,
         ));
       }
-      final innerText = bMatch.group(1)!;
       spans.addAll(_parseInnerContent(
         context,
-        innerText,
+        bMatch.group(1)!,
         true,
         effectiveStyle,
         isDark,
@@ -755,7 +882,7 @@ class InteractiveCardText extends StatelessWidget {
     TextStyle effectiveStyle,
     bool isDark,
   ) {
-    List<InlineSpan> spans = [];
+    final spans = <InlineSpan>[];
     final innerRegex = RegExp(r'(\[\[(.*?)\]\]|\[(.*?)\]|(@|\*))');
     final matches = innerRegex.allMatches(content);
 
@@ -871,14 +998,15 @@ class InteractiveCardText extends StatelessWidget {
       );
     }
 
-    final targetCard = card;
-
     final linkStyle = baseStyle.copyWith(
       color: linkColor,
       fontWeight: FontWeight.bold,
       decoration: TextDecoration.underline,
       decorationColor: linkColor,
       backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
+      fontSize: baseStyle.fontSize,
+      height: baseStyle.height,
+      fontFamily: baseStyle.fontFamily,
     );
 
     return WidgetSpan(
@@ -893,7 +1021,7 @@ class InteractiveCardText extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => CardDetailScreen(
-                  card: targetCard,
+                  card: card!,
                   initialUpgraded: isUp,
                 ),
               ),
@@ -906,12 +1034,12 @@ class InteractiveCardText extends StatelessWidget {
                 : box.localToGlobal(Offset.zero) & box.size;
             CardPreviewHelper.show(
               context: context,
-              card: targetCard,
+              card: card!,
               isUpgraded: isUp,
               targetRect: rect,
-              variantColor: targetCard.isSharedStarter
+              variantColor: card!.isSharedStarter
                   ? CardColor.ironclad
-                  : targetCard.color,
+                  : card!.color,
               showThumbnail: true,
             );
           },
@@ -948,13 +1076,14 @@ class InteractiveCardText extends StatelessWidget {
       );
     }
 
-    final targetKw = kw;
-
     final keywordStyle = baseStyle.copyWith(
       color: linkColor,
       fontWeight: FontWeight.bold,
       decoration: TextDecoration.none,
       backgroundColor: isEnh ? const Color(0x55AAFB50) : null,
+      fontSize: baseStyle.fontSize,
+      height: baseStyle.height,
+      fontFamily: baseStyle.fontFamily,
     );
 
     void showKeywordPopup(BuildContext linkContext) {
@@ -969,9 +1098,11 @@ class InteractiveCardText extends StatelessWidget {
             .toList();
         if (matchingCards.length == 1) relatedCard = matchingCards.single;
       }
+      if (kw == null) return;
+      if (kw == null) return;
       CardPreviewHelper.showKeyword(
         context: context,
-        keyword: targetKw,
+        keyword: kw,
         targetRect: rect,
         relatedCard: relatedCard,
       );
@@ -1014,26 +1145,30 @@ class SearchEffectText extends StatelessWidget {
       color: isDark ? const Color(0xFFB0BEC5) : const Color(0xFF475569),
       fontFamily: AppFontManager.fontFamily,
     );
+    final renderText = text.replaceAllMapped(
+      RegExp(r'#(.+?)#'),
+      (match) => match.group(1)!,
+    );
     final regex = RegExp(
-        r'(\^\[\[(.*?)\]\]\^|\[\[\^(.*?)\^\]\]|\^\[(.*?)\]\^|\[\^(.*?)\^\]|\[\[(.*?)\]\]|\[(.*?)\]|\^(.*?)\^|(@|\*))');
-    final matches = regex.allMatches(text);
+        r'(\^\[\[(.*?)\]\]\^|\[\[(.*?)\^\]\]|\^\[(.*?)\]\^|\[\^(.*?)\^\]|\[\[(.*?)\]\]|\[(.*?)\]|\^(.*?)\^|(@|\*))');
+    final matches = regex.allMatches(renderText);
 
     if (matches.isEmpty) {
       return Text(
-        text,
+        renderText,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: baseStyle,
       );
     }
 
-    List<InlineSpan> spans = [];
+    final spans = <InlineSpan>[];
     int lastIndex = 0;
 
     for (final match in matches) {
       if (match.start > lastIndex) {
         spans.add(TextSpan(
-          text: text.substring(lastIndex, match.start),
+          text: renderText.substring(lastIndex, match.start),
           style: baseStyle,
         ));
       }
@@ -1058,6 +1193,9 @@ class SearchEffectText extends StatelessWidget {
             color: const Color(0xFFFFD54F),
             backgroundColor: const Color(0x55AAFB50),
             fontWeight: FontWeight.bold,
+            fontSize: baseStyle.fontSize,
+            height: baseStyle.height,
+            fontFamily: baseStyle.fontFamily,
           ),
         ));
       } else if (regLink != null || regKw != null) {
@@ -1067,6 +1205,9 @@ class SearchEffectText extends StatelessWidget {
           style: baseStyle.copyWith(
             color: const Color(0xFFFFD54F),
             fontWeight: FontWeight.bold,
+            fontSize: baseStyle.fontSize,
+            height: baseStyle.height,
+            fontFamily: baseStyle.fontFamily,
           ),
         ));
       } else if (highlightText != null) {
@@ -1075,6 +1216,9 @@ class SearchEffectText extends StatelessWidget {
           style: baseStyle.copyWith(
             color: const Color(0xFFAAFB50),
             fontWeight: FontWeight.bold,
+            fontSize: baseStyle.fontSize,
+            height: baseStyle.height,
+            fontFamily: baseStyle.fontFamily,
           ),
         ));
       } else if (symbol != null) {
@@ -1115,9 +1259,9 @@ class SearchEffectText extends StatelessWidget {
       lastIndex = match.end;
     }
 
-    if (lastIndex < text.length) {
+    if (lastIndex < renderText.length) {
       spans.add(TextSpan(
-        text: text.substring(lastIndex),
+        text: renderText.substring(lastIndex),
         style: baseStyle,
       ));
     }
@@ -1150,7 +1294,7 @@ class UnifiedCardListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final displayImg = card.getImagePathForColor(effectiveColor, isUp);
-    final displayCostLabel = card.getCostLabel(isUp);
+    final displayCostLabel = card.getCostDisplayText(isUp);
     final displayStar = card.getStarCostLabel(isUp);
 
     final isSpecialCategory = effectiveColor == CardColor.status ||
@@ -1307,14 +1451,41 @@ class UnifiedCardListTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (isSpecialCategory && isUnplayable)
-                Text(
-                  '$tagLabel | 사용불가',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFB0BEC5),
-                    fontWeight: FontWeight.bold,
-                  ),
+              if (isSpecialCategory)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!isUnplayable) ...[
+                      Text(
+                        '$tagLabel | ',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFB0BEC5),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      CardPreviewHelper.buildCostDisplay(
+                        card: card,
+                        isUpgraded: isUp,
+                        displayColor: effectiveColor,
+                        iconSize: 14,
+                        textStyle: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        ),
+                      ),
+                    ] else ...[
+                      Text(
+                        tagLabel,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFB0BEC5),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
                 )
               else
                 Row(
@@ -1329,43 +1500,17 @@ class UnifiedCardListTile extends StatelessWidget {
                       ),
                     ),
                     if (!isUnplayable) ...[
-                      Image.asset(
-                        effectiveColor.iconPath,
-                        width: 14,
-                        height: 14,
-                        errorBuilder: (c, o, s) => const SizedBox.shrink(),
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        displayCostLabel,
-                        style: TextStyle(
+                      CardPreviewHelper.buildCostDisplay(
+                        card: card,
+                        isUpgraded: isUp,
+                        displayColor: effectiveColor,
+                        iconSize: 14,
+                        textStyle: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF1E293B),
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
                         ),
                       ),
-                      if (effectiveColor == CardColor.regent &&
-                          displayStar != null) ...[
-                        const SizedBox(width: 4),
-                        Image.asset(
-                          'assets/icons/star.webp',
-                          width: 14,
-                          height: 14,
-                          errorBuilder: (c, o, s) => const Icon(Icons.star,
-                              size: 14, color: Colors.cyanAccent),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          displayStar,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                        ),
-                      ],
                     ],
                   ],
                 ),

@@ -37,8 +37,8 @@ class AppFontManager {
   static final ValueNotifier<String> fontFamilyNotifier =
       ValueNotifier<String>(builtInFont);
 
-  static String get fontFamily =>
-      fontFamilyNotifier.value == systemFont ? 'sans-serif' : builtInFont;
+  static String? get fontFamily =>
+      fontFamilyNotifier.value == systemFont ? null : builtInFont;
 
   static Future<void> loadFontFamily() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1409,8 +1409,13 @@ class _CardCompendiumScreenState extends State<CardCompendiumScreen> {
         }
       }
 
-      if (selectedRarities.isNotEmpty && !selectedRarities.contains(c.rarity)) {
-        return false;
+      if (selectedRarities.isNotEmpty) {
+        final selectedBucket = selectedRarities
+            .map(CardData.rarityBucket)
+            .toSet();
+        if (!selectedBucket.contains(CardData.rarityBucket(c.rarity))) {
+          return false;
+        }
       }
       if (selectedCosts.isNotEmpty && !selectedCosts.contains(c.cost)) {
         return false;
@@ -1768,23 +1773,36 @@ class _CardCompendiumScreenState extends State<CardCompendiumScreen> {
                     CardRarity.rare,
                     CardRarity.event,
                     CardRarity.ancient,
+                    CardRarity.special,
                   ].map((r) {
-                    final selected = selectedRarities.contains(r);
+                    final selected = selectedRarities.contains(r) ||
+                        (r == CardRarity.special &&
+                            selectedRarities.contains(CardRarity.token));
+                    final displayLabel = r == CardRarity.special ? '기타' : r.label;
                     return _buildFilterChipItem(
-                      label: r.label,
+                      label: displayLabel,
                       isSelected: selected,
                       activeColor: Color(r.colorHex),
                       onSelected: (val) {
                         setState(() {
-                          val
-                              ? selectedRarities.add(r)
-                              : selectedRarities.remove(r);
+                          if (val) {
+                            if (r == CardRarity.special) {
+                              selectedRarities.remove(CardRarity.token);
+                              selectedRarities.add(CardRarity.special);
+                            } else {
+                              selectedRarities.remove(CardRarity.special);
+                              selectedRarities.add(r);
+                            }
+                          } else {
+                            selectedRarities.remove(CardRarity.special);
+                            selectedRarities.remove(CardRarity.token);
+                            selectedRarities.remove(r);
+                          }
                         });
                         setModalState(() {});
                       },
                     );
                   }).toList(),
-                  
                 ),
                 const SizedBox(height: 12),
                 const Text('비용 필터',
@@ -2193,7 +2211,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     final displayCost = (isUpgraded && card.upgradedCost != null)
         ? card.upgradedCost!
         : card.cost;
-    final displayCostLabel = card.getCostLabel(isUpgraded);
+    final displayCostLabel = card.getCostDisplayText(isUpgraded);
     final displayStarCost = card.getStarCostLabel(isUpgraded);
 
     final hasCostDecreased = isUpgraded &&
@@ -2570,9 +2588,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             padding: hasCostDecreased
                                 ? const EdgeInsets.symmetric(horizontal: 3)
                                 : EdgeInsets.zero,
-                            child: Text(
-                              displayCostLabel,
-                              style: TextStyle(
+                            child: CardPreviewHelper.buildCostDisplay(
+                              card: card,
+                              isUpgraded: isUpgraded,
+                              displayColor: effectiveColor,
+                              iconSize: 16,
+                              textStyle: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: isDark
@@ -2581,46 +2602,6 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 3),
-                          Image.asset(
-                            effectiveColor.iconPath,
-                            width: 16,
-                            height: 16,
-                            errorBuilder: (c, o, s) => const SizedBox.shrink(),
-                          ),
-                          if (effectiveColor == CardColor.regent &&
-                              displayStarCost != null) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              decoration: hasStarDecreased
-                                  ? BoxDecoration(
-                                      color: const Color(0x55AAFB50),
-                                      borderRadius: BorderRadius.circular(3),
-                                    )
-                                  : null,
-                              padding: hasStarDecreased
-                                  ? const EdgeInsets.symmetric(horizontal: 3)
-                                  : EdgeInsets.zero,
-                              child: Text(
-                                displayStarCost,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1E293B),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 3),
-                            Image.asset(
-                              'assets/icons/star.webp',
-                              width: 16,
-                              height: 16,
-                              errorBuilder: (c, o, s) => const Icon(Icons.star,
-                                  size: 16, color: Colors.cyanAccent),
-                            ),
-                          ],
                         ],
                       ),
                   ],
@@ -2744,13 +2725,10 @@ class _CardSearchScreenState extends State<CardSearchScreen> {
 
             bool matchesRarity = true;
             if (filterRarity != null) {
-              if (filterRarity == CardRarity.special ||
-                  filterRarity == CardRarity.token) {
-                matchesRarity = (card.rarity == CardRarity.special ||
-                    card.rarity == CardRarity.token);
-              } else {
-                matchesRarity = (card.rarity == filterRarity);
-              }
+              matchesRarity = CardData.matchesRarityBucket(
+                filterRarity!,
+                card.rarity,
+              );
             }
 
             bool matchesCost = true;
@@ -3244,6 +3222,16 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
               ),
               const Divider(height: 16),
               _buildHelpItem(
+                symbol: '#텍스트#',
+                desc: '키워드로 인식하지 않고 일반 텍스트로만 표시됩니다. 카드 링크와 키워드보다 우선순위가 높습니다.',
+                exampleInput: '#단조#를 얻습니다.',
+                exampleOutput: const InteractiveCardText(
+                  text: '#단조#를 얻습니다.',
+                  cardColor: CardColor.colorless,
+                ),
+              ),
+              const Divider(height: 16),
+              _buildHelpItem(
                 symbol: '[키워드]',
                 desc: '누르면 해당 키워드의 설명을 보여줍니다.',
                 exampleInput: '[방어도]를 5 얻습니다.',
@@ -3408,6 +3396,17 @@ class _CardRegisterScreenState extends State<CardRegisterScreen> {
     final upEffectText = _upgradedEffectController.text.trim().isEmpty
         ? null
         : _upgradedEffectController.text.trim();
+
+    if (widget.editCard == null && CardStorage.cardNameExists(_name)) {
+      AppToast.show(context, '이미 존재하는 카드 이름입니다.');
+      return;
+    }
+
+    if (widget.editCard != null &&
+        CardStorage.cardNameExists(_name, excludeId: widget.editCard!.id)) {
+      AppToast.show(context, '이미 존재하는 카드 이름입니다.');
+      return;
+    }
 
     if (_color != CardColor.regent) {
       _starCost = null;

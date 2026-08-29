@@ -43,8 +43,8 @@ enum CardType {
 }
 
 enum CardRarity {
-  token('토큰', 0, 0xFF9E9E9E),
-  special('기타', 0, 0xFF9E9E9E),
+  token('토큰', 7, 0xFF9E9E9E),
+  special('기타', 7, 0xFF9E9E9E),
   common('일반', 2, 0xFF90A4AE),
   uncommon('고급', 3, 0xFF26C6DA),
   rare('희귀', 4, 0xFFFFD700),
@@ -153,6 +153,39 @@ class CardData {
       return '$val';
     }
     return c.label;
+  }
+
+  String getCostDisplayText(bool isUpgraded) {
+    final c = (isUpgraded && upgradedCost != null) ? upgradedCost! : cost;
+    final starValue = (isUpgraded && upgradedStarCost != null)
+        ? upgradedStarCost!
+        : starCost;
+
+    if (c == CardCost.none) return '사용불가';
+
+    final baseLabel = c == CardCost.cost4Plus
+        ? ((isUpgraded && upgradedCost != null)
+                ? (upgradedCustomCost ?? customCost ?? 4)
+                : (customCost ?? 4))
+            .toString()
+        : c.label;
+
+    final costText = '$baseLabel@';
+    if (starValue == null || starValue == -1) {
+      return costText;
+    }
+
+    return '$costText ($starValue*)';
+  }
+
+  static CardRarity rarityBucket(CardRarity rarity) {
+    return rarity == CardRarity.token || rarity == CardRarity.special
+        ? CardRarity.special
+        : rarity;
+  }
+
+  static bool matchesRarityBucket(CardRarity selectedRarity, CardRarity cardRarity) {
+    return rarityBucket(selectedRarity) == rarityBucket(cardRarity);
   }
 
   // 별 비용은 호환성을 위해 int를 유지하며, -1은 특수 비용 X로 표시함.
