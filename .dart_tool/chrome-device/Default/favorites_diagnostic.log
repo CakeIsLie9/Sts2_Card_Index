@@ -478,3 +478,18 @@
 2026-08-29 04:12:55.658: [INFO] BookmarkNodeMoved
 2026-08-29 04:13:06.409: [INFO] Sync initialization duration: 21925ms
 2026-08-29 04:48:20.216: [INFO] BookmarksSnapshot Shutdown total=125 bar=87 other=20 mobile=0 showBar=0 showBarNTP=1
+2026-08-29 06:42:59.471: [INFO] CurrentProfilePath: C:\Users\caret\AppData\Local\Temp\flutter_tools.fdd96061\flutter_tools_chrome_device.1ddcd1fd\Default
+2026-08-29 06:42:59.471: [INFO] Profiles total count: 1
+2026-08-29 06:42:59.472: [INFO] Profile: name=프로필 1 path=C:\Users\caret\AppData\Local\Temp\flutter_tools.fdd96061\flutter_tools_chrome_device.1ddcd1fd\Default lastActive=null
+2026-08-29 06:42:59.472: [INFO] LastUsedProfileDir: C:\Users\caret\AppData\Local\Temp\flutter_tools.fdd96061\flutter_tools_chrome_device.1ddcd1fd\Default
+2026-08-29 06:42:59.472: [INFO] VisibilityChanged: 0
+2026-08-29 06:42:59.619: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 06:42:59.619: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 06:42:59.620: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 06:42:59.620: [INFO] BookmarkNodeAdded, ABU: 0
+2026-08-29 06:42:59.620: [INFO] OnDoneLoading sync enabled: 1
+2026-08-29 06:42:59.620: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-29 06:42:59.620: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-29 06:42:59.620: [INFO] BookmarksSnapshot Startup total=129 bar=91 other=20 mobile=0 showBar=0 showBarNTP=1
+2026-08-29 06:43:10.533: [INFO] Sync initialization duration: 1112ms
+2026-08-29 06:53:57.505: [INFO] BookmarksSnapshot Shutdown total=129 bar=91 other=20 mobile=0 showBar=0 showBarNTP=1
