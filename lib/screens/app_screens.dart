@@ -32,26 +32,24 @@ class ThemeModeManager {
 }
 
 class AppFontManager {
+  static const systemFont = 'system';
   static const builtInFont = 'GyeonggiBatang';
   static final ValueNotifier<String> fontFamilyNotifier =
       ValueNotifier<String>(builtInFont);
 
-  static String get fontFamily => builtInFont;
+  static String get fontFamily =>
+      fontFamilyNotifier.value == systemFont ? 'sans-serif' : builtInFont;
 
   static Future<void> loadFontFamily() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedFont = prefs.getString('app_font_family');
     fontFamilyNotifier.value =
-        (savedFont != null && savedFont != 'system' && savedFont.isNotEmpty)
-            ? savedFont
-            : builtInFont;
+        prefs.getString('app_font_family') ?? builtInFont;
   }
 
   static Future<void> setFontFamily(String family) async {
-    final resolvedFont = family == 'system' ? builtInFont : family;
-    fontFamilyNotifier.value = resolvedFont;
+    fontFamilyNotifier.value = family;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_font_family', resolvedFont);
+    await prefs.setString('app_font_family', family);
   }
 }
 
@@ -386,7 +384,7 @@ class ExtraFeaturesScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'v0.4.1 | Game v0.107.1',
+                        'v0.4.0 | Game v0.107.1',
                         style: TextStyle(
                             fontSize: 10, color: Colors.grey.withValues(alpha: 0.3)),
                       ),
@@ -860,7 +858,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('쓰기 모드가 켜졌습니다!'),
         content: const Text(
-          '카드, 키워드 데이터를 작성/편집/삭제하거나 직접 만든 카드 데이터베이스를 내보내거나 복원할 수 있는 여러 가지 메뉴가 추가되었습니다.\n"기본 데이터로 초기화" 시 데이터베이스는 초기 상태로 돌아갑니다.\n\n추가된 메뉴:\n추가 기능 - 새 카드 등록\n키워드 도감 (추가 기능) - 키워드 추가, 숨김 키워드 포함하여 보기, 모든 키워드 일괄 적용. 키워드를 길게 클릭하면 수정 및 삭제가 가능합니다.\n카드 상세 페이지 - 카드 편집, 카드 삭제\n환경설정 - 데이터베이스 관리의 모든 설정\n\n이 메시지는 쓰기 모드를 켤 때마다 표시됩니다.',
+          '카드, 키워드 데이터를 작성/편집/삭제하거나 직접 만든 카드 데이터베이스를 내보내거나 복원할 수 있는 여러 가지 메뉴가 추가되었습니다.\n"기본 데이터로 초기화" 시 초기 상태로 돌아갑니다,\n\n추가된 메뉴:\n추가 기능 - 새 카드 등록\n키워드 도감 (추가 기능) - 키워드 추가, 숨김 키워드 포함하여 보기, 모든 키워드 일괄 적용. 키워드를 길게 클릭하면 수정 및 삭제가 가능합니다.\n카드 상세 페이지 - 카드 편집, 카드 삭제\n환경설정 - 데이터베이스 관리의 모든 설정',
         ),
         actions: [
           TextButton(
@@ -1197,6 +1195,42 @@ class SettingsScreen extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
+              '폰트 설정',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB0BEC5),
+              ),
+            ),
+          ),
+          ValueListenableBuilder<String>(
+            valueListenable: AppFontManager.fontFamilyNotifier,
+            builder: (context, currentFont, _) => Column(
+              children: [
+                RadioListTile<String>(
+                  title: const Text('기본 글꼴'),
+                  value: AppFontManager.builtInFont,
+                  groupValue: currentFont,
+                  onChanged: (font) {
+                    if (font != null) AppFontManager.setFontFamily(font);
+                  },
+                ),
+                RadioListTile<String>(
+                  title: const Text('시스템 폰트'),
+                  subtitle: const Text('시스템에서 사용하는 폰트가 적용됩니다.', style: TextStyle(fontSize: 13)),
+                  value: AppFontManager.systemFont,
+                  groupValue: currentFont,
+                  onChanged: (font) {
+                    if (font != null) AppFontManager.setFontFamily(font);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
               '데이터베이스 관리',
               style: TextStyle(
                 fontSize: 14,
@@ -1309,7 +1343,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             title: const Text('버전 정보',
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            trailing: const Text('v0.4.1', style: TextStyle(fontSize: 13)),
+            trailing: const Text('v0.4.0', style: TextStyle(fontSize: 13)),
             onTap: () {},
           ),
         ],

@@ -366,6 +366,15 @@ class CardPreviewHelper {
     if (displayColor == CardColor.regent && starValue != null && starValue != -1) {
       children.addAll([
         const SizedBox(width: 4),
+        Text(
+          starValue.toString(),
+          style: textStyle ??
+              const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(width: 2),
         Image.asset(
           'assets/icons/star.webp',
           width: iconSize,
@@ -375,15 +384,6 @@ class CardPreviewHelper {
             size: iconSize,
             color: Colors.cyanAccent,
           ),
-        ),
-        const SizedBox(width: 2),
-        Text(
-          starValue.toString(),
-          style: textStyle ??
-              const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
         ),
       ]);
     }
@@ -417,7 +417,6 @@ class CardPreviewHelper {
             card.upgradedEffect!.isNotEmpty)
         ? card.upgradedEffect!
         : card.effect;
-    final displayCostLabel = card.getCostDisplayText(isUpgraded);
     final isUnplayable = ((isUpgraded && card.upgradedCost != null)
         ? card.upgradedCost!
         : card.cost) ==
@@ -496,9 +495,12 @@ class CardPreviewHelper {
                               ),
                             ),
                             if (!isUnplayable) ...[
-                              Text(
-                                displayCostLabel,
-                                style: TextStyle(
+                              buildCostDisplay(
+                                card: card,
+                                isUpgraded: isUpgraded,
+                                displayColor: effectiveColor,
+                                iconSize: 13,
+                                textStyle: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: isDark
@@ -654,12 +656,11 @@ class CardPreviewHelper {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    InteractiveCardText(
-                      text: keyword.description,
-                      cardColor: CardColor.colorless,
-                      baseStyle: TextStyle(
+                    Text(
+                      keyword.description,
+                      style: TextStyle(
                         fontSize: 13,
-                        color: const Color(0xFFE5E7E9),
+                        color: Color(0xFFE5E7E9),
                         height: 1.35,
                         fontFamily: AppFontManager.fontFamily,
                       ),

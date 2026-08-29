@@ -11591,7 +11591,7 @@
     {
       "id": "3e07f9fb-b958-4814-b62b-8beef070b4f8",
       "name": "생명 삼키기",
-      "effect": "^영혼^을 사용할 때마다, [소환] 1.",
+      "effect": "[[영혼]]을 사용할 때마다, [소환] 1.",
       "color": "necrobinder",
       "type": "power",
       "rarity": "rare",
@@ -11609,7 +11609,7 @@
       "upgradedCost": null,
       "upgradedCustomCost": null,
       "upgradedStarCost": null,
-      "upgradedEffect": "^영혼^을 사용할 때마다, [소환] ^2^.",
+      "upgradedEffect": "[[영혼]]을 사용할 때마다, [소환] ^2^.",
       "description": "",
       "base64Image": null,
       "base64UpgradedImage": null,
