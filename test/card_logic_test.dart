@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:card_index/main.dart';
 
@@ -7,7 +8,9 @@ void main() {
     CardStorage.keywords = [];
   });
 
-  test('keyword batch converts only plain keyword text and keeps hash wrappers intact', () {
+  test(
+      'keyword batch converts only plain keyword text and keeps hash wrappers intact',
+      () {
     CardStorage.cards = [
       CardData(
         id: 'card-1',
@@ -56,7 +59,9 @@ void main() {
     );
   });
 
-  test('hash-wrapped keyword followed by a suffix remains searchable as one word', () {
+  test(
+      'hash-wrapped keyword followed by a suffix remains searchable as one word',
+      () {
     final text = '#영구#히';
 
     expect(KoreanSearchHelper.matches(text, '영구히'), isTrue);
@@ -75,5 +80,87 @@ void main() {
     expect(CardStorage.resolveKeyword('단조'), isNotNull);
     expect(CardStorage.resolveKeyword('[단조]'), isNotNull);
     expect(CardStorage.resolveKeyword('[단조]')?.name, '단조');
+  });
+
+  testWidgets('단조 keyword uses the normal tappable keyword popup',
+      (tester) async {
+    CardStorage.keywords = [
+      KeywordData(
+        id: 'kw-1',
+        name: '단조',
+        description: '일반 키워드 설명',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: InteractiveCardText(
+            text: '[단조]',
+            cardColor: CardColor.regent,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('단조'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('일반 키워드 설명'), findsOneWidget);
+  });
+
+  testWidgets('cost display keeps numbers before energy and star icons',
+      (tester) async {
+    final card = CardData(
+      id: 'card-regent',
+      name: '테스트 카드',
+      effect: '',
+      color: CardColor.regent,
+      type: CardType.skill,
+      cost: CardCost.cost1,
+      starCost: 3,
+      imagePath: '',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CardPreviewHelper.buildCostDisplay(
+            card: card,
+            isUpgraded: false,
+            displayColor: CardColor.regent,
+            textStyle: const TextStyle(),
+          ),
+        ),
+      ),
+    );
+
+    final row = tester.widget<Row>(find.byType(Row));
+    final energyTextIndex = row.children.indexWhere(
+      (child) => child is Text && child.data == '1',
+    );
+    final energyIconIndex = row.children.indexWhere(
+      (child) =>
+          child is Image &&
+          child.image is AssetImage &&
+          (child.image as AssetImage).assetName == CardColor.regent.iconPath,
+    );
+    final starTextIndex = row.children.indexWhere(
+      (child) => child is Text && child.data == '3',
+    );
+    final starIconIndex = row.children.indexWhere(
+      (child) =>
+          child is Image &&
+          child.image is AssetImage &&
+          (child.image as AssetImage).assetName ==
+              CardPreviewHelper.starIconPath,
+    );
+
+    expect(energyTextIndex, greaterThan(-1));
+    expect(energyIconIndex, greaterThan(-1));
+    expect(energyTextIndex < energyIconIndex, isTrue);
+    expect(starTextIndex, greaterThan(-1));
+    expect(starIconIndex, greaterThan(-1));
+    expect(starTextIndex < starIconIndex, isTrue);
   });
 }
