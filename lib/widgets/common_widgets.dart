@@ -835,7 +835,27 @@ class InteractiveCardText extends StatelessWidget {
           style: effectiveStyle,
         ));
       }
-      return Text.rich(TextSpan(children: spans), style: effectiveStyle);
+      final richText = Text.rich(
+        TextSpan(children: spans),
+        style: effectiveStyle,
+        strutStyle: StrutStyle.fromTextStyle(effectiveStyle),
+      );
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTapUp: (details) => _handleTapUp(
+          context,
+          details.globalPosition,
+          normalizedText,
+          effectiveStyle,
+        ),
+        onLongPressStart: (details) => _handleLongPress(
+          context,
+          details.globalPosition,
+          normalizedText,
+          effectiveStyle,
+        ),
+        child: richText,
+      );
     }
 
     final blockRegex = RegExp(r'\^(.*?)\^');
@@ -874,11 +894,197 @@ class InteractiveCardText extends StatelessWidget {
       ));
     }
 
-    return Text.rich(
+    final richText = Text.rich(
       TextSpan(children: spans),
       style: effectiveStyle,
       strutStyle: StrutStyle.fromTextStyle(effectiveStyle),
     );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapUp: (details) => _handleTapUp(
+        context,
+        details.globalPosition,
+        normalizedText,
+        effectiveStyle,
+      ),
+      onLongPressStart: (details) => _handleLongPress(
+        context,
+        details.globalPosition,
+        normalizedText,
+        effectiveStyle,
+      ),
+      child: richText,
+    );
+  }
+
+  void _handleTapUp(
+    BuildContext context,
+    Offset globalPosition,
+    String normalizedText,
+    TextStyle effectiveStyle,
+  ) {
+    final renderObject = context.findRenderObject() as RenderBox?;
+    if (renderObject == null) return;
+
+    final localPosition = renderObject.globalToLocal(globalPosition);
+    final textPainter = TextPainter(
+      text: TextSpan(text: normalizedText, style: effectiveStyle),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout(maxWidth: renderObject.size.width);
+
+    final textOffset = textPainter.getPositionForOffset(localPosition).offset;
+    final match = _matchCardOrKeywordAtOffset(normalizedText, textOffset);
+    if (match == null) return;
+
+    if (match.type == 'card') {
+      String rawName = match.value.trim();
+      final isUp = rawName.endsWith('+');
+      if (isUp) rawName = rawName.substring(0, rawName.length - 1).trim();
+
+      CardData? card;
+      try {
+        card = CardStorage.cards.firstWhere((c) => c.name == rawName);
+      } catch (_) {}
+      if (card == null) return;
+
+      final resolvedCard = card;
+      if (resolvedCard == null) return;
+
+      CardPreviewHelper.hide();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CardDetailScreen(
+            card: resolvedCard,
+            initialUpgraded: isUp,
+          ),
+        ),
+      );
+    } else if (match.type == 'keyword') {
+      KeywordData? keyword;
+      try {
+        keyword = CardStorage.keywords.firstWhere((k) => k.name.trim() == match.value.trim());
+      } catch (_) {}
+      if (keyword == null) return;
+
+      final targetRect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
+      final relatedCard = _findRelatedCardForKeyword(keyword);
+      CardPreviewHelper.showKeyword(
+        context: context,
+        keyword: keyword,
+        targetRect: targetRect,
+        relatedCard: relatedCard,
+      );
+    }
+  }
+
+  void _handleLongPress(
+    BuildContext context,
+    Offset globalPosition,
+    String normalizedText,
+    TextStyle effectiveStyle,
+  ) {
+    final renderObject = context.findRenderObject() as RenderBox?;
+    if (renderObject == null) return;
+
+    final localPosition = renderObject.globalToLocal(globalPosition);
+    final textPainter = TextPainter(
+      text: TextSpan(text: normalizedText, style: effectiveStyle),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout(maxWidth: renderObject.size.width);
+
+    final textOffset = textPainter.getPositionForOffset(localPosition).offset;
+    final match = _matchCardOrKeywordAtOffset(normalizedText, textOffset);
+    if (match == null) return;
+
+    final targetRect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
+
+    if (match.type == 'card') {
+      String rawName = match.value.trim();
+      final isUp = rawName.endsWith('+');
+      if (isUp) rawName = rawName.substring(0, rawName.length - 1).trim();
+
+      CardData? card;
+      try {
+        card = CardStorage.cards.firstWhere((c) => c.name == rawName);
+      } catch (_) {}
+      if (card == null) return;
+
+      final resolvedCard = card;
+      if (resolvedCard == null) return;
+
+      CardPreviewHelper.show(
+        context: context,
+        card: resolvedCard,
+        isUpgraded: isUp,
+        targetRect: targetRect,
+        variantColor: resolvedCard.isSharedStarter ? CardColor.ironclad : resolvedCard.color,
+      );
+      return;
+    }
+
+    KeywordData? keyword;
+    try {
+      keyword = CardStorage.keywords.firstWhere((k) => k.name.trim() == match.value.trim());
+    } catch (_) {}
+    if (keyword == null) return;
+
+    final relatedCard = _findRelatedCardForKeyword(keyword);
+    CardPreviewHelper.showKeyword(
+      context: context,
+      keyword: keyword,
+      targetRect: targetRect,
+      relatedCard: relatedCard,
+    );
+  }
+
+  CardData? _findRelatedCardForKeyword(KeywordData keyword) {
+    final normalizedKeyword = keyword.name.trim();
+    if (normalizedKeyword.isEmpty) return null;
+
+    // Special mapping for specific keywords
+    if (normalizedKeyword == '단조') {
+      try {
+        return CardStorage.cards.firstWhere(
+          (c) => c.id == 'c1aa536e-a7b9-40dd-8a94-de1c5cd2ce44',
+        );
+      } catch (_) {}
+    }
+
+    for (final card in CardStorage.cards) {
+      final searchable = (card.effect + ' ' + (card.upgradedEffect ?? '')).toLowerCase();
+      final keywordText = '[${normalizedKeyword}]';
+      if (searchable.contains(keywordText.toLowerCase())) {
+        return card;
+      }
+    }
+    return null;
+  }
+
+  ({String type, String value})? _matchCardOrKeywordAtOffset(
+    String text,
+    int offset,
+  ) {
+    final linkMatches = RegExp(r'\[\[(.*?)\]\]').allMatches(text);
+    for (final match in linkMatches) {
+      if (offset >= match.start && offset <= match.end) {
+        final value = match.group(1)?.trim() ?? '';
+        if (value.isNotEmpty) return (type: 'card', value: value);
+      }
+    }
+
+    final keywordMatches = RegExp(r'\[(.*?)\]').allMatches(text);
+    for (final match in keywordMatches) {
+      if (offset >= match.start && offset <= match.end) {
+        final value = match.group(1)?.trim() ?? '';
+        if (value.isNotEmpty) return (type: 'keyword', value: value);
+      }
+    }
+
+    return null;
   }
 
   InlineSpan _buildSymbolSpan(
@@ -1032,25 +1238,9 @@ class InteractiveCardText extends StatelessWidget {
       fontFamily: baseStyle.fontFamily,
     );
 
-    final recognizer = TapGestureRecognizer()
-      ..onTap = () {
-        if (card == null) return;
-        CardPreviewHelper.hide();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CardDetailScreen(
-              card: card!,
-              initialUpgraded: isUp,
-            ),
-          ),
-        );
-      };
-
     return TextSpan(
       text: rawName,
       style: linkStyle,
-      recognizer: recognizer,
     );
   }
 
