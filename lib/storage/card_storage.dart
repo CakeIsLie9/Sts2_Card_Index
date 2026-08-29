@@ -103,6 +103,21 @@ class CardStorage {
         (excludeId == null || card.id != excludeId));
   }
 
+  static KeywordData? resolveKeyword(String rawName) {
+    final normalized = rawName
+        .trim()
+        .replaceAll(RegExp(r'^[\[\^#]+|[\]\^#]+$'), '')
+        .trim();
+    if (normalized.isEmpty) return null;
+
+    for (final keyword in keywords) {
+      final candidate = keyword.name.trim();
+      if (candidate == normalized) return keyword;
+    }
+
+    return null;
+  }
+
   static Future<void> saveCards() async {
     final prefs = await SharedPreferences.getInstance();
     final String dataString = jsonEncode(cards.map((e) => e.toJson()).toList());

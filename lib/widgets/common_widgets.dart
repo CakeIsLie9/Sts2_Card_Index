@@ -1058,11 +1058,7 @@ class InteractiveCardText extends StatelessWidget {
     TextStyle baseStyle,
     bool isDark,
   ) {
-    KeywordData? kw;
-    try {
-      kw = CardStorage.keywords
-          .firstWhere((k) => k.name.trim() == kwName.trim());
-    } catch (_) {}
+    final kw = CardStorage.resolveKeyword(kwName);
 
     final linkColor =
         isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309);
@@ -1094,14 +1090,12 @@ class InteractiveCardText extends StatelessWidget {
           ? const Rect.fromLTWH(0, 0, 0, 0)
           : box.localToGlobal(Offset.zero) & box.size;
       CardData? relatedCard;
-      if (kwName == '단조') {
+      if (kw.name.trim() == '단조') {
         final matchingCards = CardStorage.cards
             .where((card) => card.name.trim() == '군주의 칼날')
             .toList();
         if (matchingCards.length == 1) relatedCard = matchingCards.single;
       }
-      if (kw == null) return;
-      if (kw == null) return;
       CardPreviewHelper.showKeyword(
         context: context,
         keyword: kw,

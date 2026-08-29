@@ -62,4 +62,18 @@ void main() {
     expect(KoreanSearchHelper.matches(text, '영구히'), isTrue);
     expect(KoreanSearchHelper.searchableEffect(text).contains('영구히'), isTrue);
   });
+
+  test('bracketed keyword names resolve to the same keyword', () {
+    CardStorage.keywords = [
+      KeywordData(
+        id: 'kw-1',
+        name: '단조',
+        description: '테스트 설명',
+      ),
+    ];
+
+    expect(CardStorage.resolveKeyword('단조'), isNotNull);
+    expect(CardStorage.resolveKeyword('[단조]'), isNotNull);
+    expect(CardStorage.resolveKeyword('[단조]')?.name, '단조');
+  });
 }
